@@ -151,6 +151,10 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
 
   // Define the available group fields
   const GROUP_FIELDS = {
+    ALL: {
+      displayName: 'All Groups',
+      values: ['Total']
+    },
     age: {
       displayName: 'Age Group',
       values: AGE_GROUP_ORDER
