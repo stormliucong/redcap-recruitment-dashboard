@@ -55,20 +55,28 @@ const theme = createTheme({
   },
 })
 
-// Demo configuration with mock API URL
-const DEMO_CONFIG: RedcapConfig = {
-  apiUrl: 'https://mock-redcap-api.example.com/api/',
-  apiToken: 'demo-token',
+// Default configuration with environment variables
+const DEFAULT_CONFIG: RedcapConfig = {
+  apiUrl: import.meta.env.VITE_REDCAP_API_URL || '',
+  apiToken: import.meta.env.VITE_REDCAP_API_TOKEN || '',
   fields: {
-    groups: [],
-    timestamps: [],
+    groups: [
+      { redcapField: 'gene', displayName: 'Gene', type: 'group' as const, valueMappings: {} },
+      { redcapField: 'consent_location', displayName: 'Consent Location', type: 'group' as const, valueMappings: {} },
+      { redcapField: 'age', displayName: 'Age Group', type: 'group' as const, valueMappings: {} },
+      { redcapField: 'is_international', displayName: 'Is International', type: 'group' as const, valueMappings: {} },
+    ],
+    timestamps: [
+      { redcapField: 'consent_date', displayName: 'Consent Date', type: 'timestamp' as const },
+      { redcapField: 'survey_completion_date', displayName: 'Survey Completion', type: 'timestamp' as const },
+    ],
   },
 }
 
 function App() {
   const [config, setConfig] = useState<RedcapConfig | null>(() => {
     const savedConfig = localStorage.getItem('redcapConfig')
-    return savedConfig ? JSON.parse(savedConfig) : DEMO_CONFIG
+    return savedConfig ? JSON.parse(savedConfig) : DEFAULT_CONFIG
   })
 
   const handleConfigSave = (newConfig: RedcapConfig) => {
@@ -86,12 +94,14 @@ function App() {
               <Toolbar disableGutters>
                 <Typography variant="h6" component="div" sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
                   REDCap Recruitment Dashboard
-                  <Chip
-                    label="Demo Mode"
-                    color="primary"
-                    size="small"
-                    sx={{ ml: 2 }}
-                  />
+                  {!config?.apiUrl && (
+                    <Chip
+                      label="Demo Mode"
+                      color="primary"
+                      size="small"
+                      sx={{ ml: 2 }}
+                    />
+                  )}
                 </Typography>
                 <Box>
                   <Button color="inherit" component={Link} to="/" sx={{ mx: 1 }}>
