@@ -64,8 +64,8 @@ export class MockRedcapApiService {
       mockData.push({
         record_id: `NHS${i + 1}`,
         age: this.getRandomAgeGroup(),
-        consent_location: Math.random() > 0.5 ? 'Boston' : 'Others', // 50% chance of being from Boston
-        is_international: Math.random() > 0.7,
+        consent_location: Math.random() > 0.5 ? 'Boston' : 'Others',
+        location_country: Math.random() > 0.3 ? 'United States' : 'Others', // 70% chance of being from US
         gene: geneName,
         consent_date: this.getRandomDate(new Date(2023, 0, 1), new Date())
       });
@@ -75,7 +75,7 @@ export class MockRedcapApiService {
   }
 
   private getRandomAgeGroup(): string {
-    const groups = ['0-4', '5-9', '10-14', '15-19', '20+'];
+    const groups = ['0-6', '7-17', '18-65', '65+'];
     return groups[Math.floor(Math.random() * groups.length)];
   }
 

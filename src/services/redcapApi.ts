@@ -44,10 +44,10 @@ export interface ParticipantData {
   record_id: string;
   age: string;
   consent_location: string;
-  is_international: boolean;
+  location_country: string;
   gene: string;
   consent_date: string;
-  [key: string]: string | boolean;
+  [key: string]: string | undefined;
 }
 
 export class RedcapApiService {
@@ -65,7 +65,9 @@ export class RedcapApiService {
       timeout: config.timeout || this.DEFAULT_TIMEOUT,
       maxCacheEntries: config.maxCacheEntries || this.DEFAULT_MAX_CACHE_ENTRIES
     };
-    if (process.env.NODE_ENV === 'development' && this.config.apiUrl.includes('mock-redcap-api')) {
+    // Use mock service if VITE_USE_MOCK is true
+    if (import.meta.env.VITE_USE_MOCK === 'true') {
+      console.log('Using mock REDCap service');
       this.mockService = new MockRedcapApiService();
     }
   }
@@ -189,37 +191,38 @@ export class RedcapApiService {
   }
 
   async fetchRecruitmentData(): Promise<ParticipantData[]> {
+    // If using mock service, return mock data
     if (this.mockService) {
       return this.mockService.fetchRecruitmentData();
     }
 
     try {
-      // First, get all NHS record IDs
-      console.log('Fetching all NHS record IDs...');
-      const allRecordIds = await this.fetchAllRecordIds();
-      console.log(`Found ${allRecordIds.length} NHS records`);
+      const formData = new FormData();
+      formData.append('token', this.config.apiToken);
+      formData.append('content', 'record');
+      formData.append('format', 'json');
+      formData.append('type', 'flat');
+      formData.append('fields[0]', 'record_id');
+      formData.append('fields[1]', 'current_age_yr');
+      formData.append('fields[2]', 'consent_bch');
+      formData.append('fields[3]', 'location_country');
+      formData.append('fields[4]', 'gene');
+      formData.append('fields[5]', 'consent_bch_date');
 
-      // Process records in batches
-      const batchSize = this.config.batchNumber || this.DEFAULT_BATCH_SIZE;
-      const batches = [];
-      for (let i = 0; i < allRecordIds.length; i += batchSize) {
-        batches.push(allRecordIds.slice(i, i + batchSize));
+      const response = await fetch(this.config.apiUrl, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`REDCap API error: ${response.status} - ${errorText}`);
       }
 
-      // Fetch each batch and combine results
-      const allData: ParticipantData[] = [];
-      for (let i = 0; i < batches.length; i++) {
-        console.log(`Fetching batch ${i + 1} of ${batches.length}...`);
-        const batchData = await this.fetchBatch(batches[i]);
-        allData.push(...batchData);
-      }
-
-      // Save to cache
-      this.saveToCache(allData);
-
-      return allData;
+      const rawData = await response.json();
+      return this.processParticipantData(rawData);
     } catch (error) {
-      console.error('Error fetching REDCap data:', error);
+      console.error('Error fetching data from REDCap:', error);
       throw error;
     }
   }
@@ -228,21 +231,20 @@ export class RedcapApiService {
     return rawData.map(record => {
       // Process age into groups
       const age = record.current_age_yr || '';
-      let ageGroup = '';
+      let ageGroup = 'n/a';
       if (age) {
         const ageNum = parseInt(age);
-        if (ageNum < 5) ageGroup = '0-4';
-        else if (ageNum < 10) ageGroup = '5-9';
-        else if (ageNum < 15) ageGroup = '10-14';
-        else if (ageNum < 20) ageGroup = '15-19';
-        else ageGroup = '20+';
+        if (ageNum <= 6) ageGroup = '0-6';
+        else if (ageNum <= 17) ageGroup = '7-17';
+        else if (ageNum <= 65) ageGroup = '18-65';
+        else ageGroup = '65+';
       }
 
       // Determine consent location (1 = Boston, anything else = Others)
       const consentLocation = record.consent_bch === '1' ? 'Boston' : 'Others';
 
-      // Check if international
-      const isInternational = record.location_country !== 'United States';
+      // Map location_country (1 = United States, anything else = Others)
+      const locationCountry = record.location_country === '1' ? 'United States' : 'Others';
 
       // Map gene value to actual gene name
       const geneValue = record.gene || '';
@@ -252,17 +254,10 @@ export class RedcapApiService {
         record_id: record.record_id || '',
         age: ageGroup,
         consent_location: consentLocation,
-        is_international: isInternational,
+        location_country: locationCountry,
         gene: geneName,
         consent_date: record.consent_bch_date || ''
       };
-
-      // Add any additional fields from the record
-      Object.keys(record).forEach(key => {
-        if (!(key in participantData)) {
-          participantData[key] = String(record[key] || '');
-        }
-      });
 
       return participantData;
     });

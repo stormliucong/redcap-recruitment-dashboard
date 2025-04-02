@@ -14,6 +14,8 @@ import {
   Tabs,
   Tab,
   TextField,
+  Button,
+  Chip,
 } from '@mui/material'
 import { RedcapApiService, RedcapConfig, ParticipantData, FieldMapping } from '../../services/redcapApi'
 import { 
@@ -43,6 +45,7 @@ import {
   differenceInMonths,
   isAfter,
 } from 'date-fns'
+import RefreshIcon from '@mui/icons-material/Refresh'
 
 interface RecruitmentDashboardProps {
   redcapConfig: RedcapConfig
@@ -122,8 +125,8 @@ export default function RecruitmentDashboard({ redcapConfig }: RecruitmentDashbo
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<ParticipantData[]>([]);
-  const [selectedGene, setSelectedGene] = useState('');
-  const [selectedGroup2, setSelectedGroup2] = useState('');
+  const [selectedGene, setSelectedGene] = useState('ALL');
+  const [selectedGroup, setSelectedGroup] = useState('location_country');
   const [selectedTimestamp, setSelectedTimestamp] = useState('');
   const [timeRange, setTimeRange] = useState<'weekly' | 'monthly' | 'all'>('weekly');
   const [tabValue, setTabValue] = useState(0);
@@ -132,6 +135,8 @@ export default function RecruitmentDashboard({ redcapConfig }: RecruitmentDashbo
   const [monthlyTarget, setMonthlyTarget] = useState<string>('');
   const [averageMonthlyGrowth, setAverageMonthlyGrowth] = useState<number>(0);
   const [categories, setCategories] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [lastUpdateTime, setLastUpdateTime] = useState<string | null>(null);
 
   const fields = {
     groups: redcapConfig.fields.groups.length > 0 ? redcapConfig.fields.groups : DEFAULT_FIELDS.groups,
@@ -144,6 +149,25 @@ export default function RecruitmentDashboard({ redcapConfig }: RecruitmentDashbo
 
   // Get unique gene values from the data
   const uniqueGenes = ['ALL', ...Array.from(new Set(data.map(record => record.gene as string))).sort()];
+
+  // Define the age group order
+  const AGE_GROUP_ORDER = ['0-6', '7-17', '18-65', '65+'];
+
+  // Define the available group fields
+  const GROUP_FIELDS = {
+    age: {
+      displayName: 'Age Group',
+      values: AGE_GROUP_ORDER
+    },
+    location_country: {
+      displayName: 'Location',
+      values: ['United States', 'Others']
+    },
+    consent_location: {
+      displayName: 'Consent Location',
+      values: ['Boston', 'Others']
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -158,8 +182,8 @@ export default function RecruitmentDashboard({ redcapConfig }: RecruitmentDashbo
         if (!selectedGene) {
           setSelectedGene('ALL');
         }
-        if (!selectedGroup2 && otherGroupFields.length > 0) {
-          setSelectedGroup2(otherGroupFields[0].redcapField);
+        if (!selectedGroup && otherGroupFields.length > 0) {
+          setSelectedGroup(otherGroupFields[0].redcapField);
         }
         if (!selectedTimestamp) {
           setSelectedTimestamp(fields.timestamps[0].redcapField);
@@ -168,6 +192,7 @@ export default function RecruitmentDashboard({ redcapConfig }: RecruitmentDashbo
         setError(err instanceof Error ? err.message : 'An error occurred while fetching data');
       } finally {
         setLoading(false);
+        setLastUpdateTime(new Date().toISOString());
       }
     };
 
@@ -207,23 +232,23 @@ export default function RecruitmentDashboard({ redcapConfig }: RecruitmentDashbo
     }
   }, [data, selectedTimestamp]);
 
-  // Update categories when selectedGroup2 changes
+  // Update categories when selectedGroup changes
   useEffect(() => {
-    if (!selectedGroup2) return;
+    if (!selectedGroup) return;
     
-    if (selectedGroup2 === 'ALL') {
+    if (selectedGroup === 'ALL') {
       setCategories(['Total']);
       return;
     }
 
-    const fieldConfig = fields.groups.find(f => f.redcapField === selectedGroup2);
+    const fieldConfig = fields.groups.find(f => f.redcapField === selectedGroup);
     const mappings = fieldConfig?.valueMappings as { [key: string]: string } | undefined;
     const uniqueValues = new Set(data.map(record => {
-      const value = record[selectedGroup2] as string;
+      const value = record[selectedGroup] as string;
       return mappings?.[value] ?? value;
     }));
     setCategories(Array.from(uniqueValues));
-  }, [selectedGroup2, data, fields.groups]);
+  }, [selectedGroup, data, fields.groups]);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -232,7 +257,7 @@ export default function RecruitmentDashboard({ redcapConfig }: RecruitmentDashbo
   const processTimeSeriesData = () => {
     if (!selectedTimestamp) return [];
 
-    const group2Field = selectedGroup2;
+    const group2Field = selectedGroup;
     const group2Config = fields.groups.find(f => f.redcapField === group2Field) as FieldMapping | undefined;
 
     // Filter data based on selected gene
@@ -419,6 +444,14 @@ export default function RecruitmentDashboard({ redcapConfig }: RecruitmentDashbo
     return dataPoints;
   };
 
+  const handleRefresh = () => {
+    fetchData();
+  };
+
+  const handleGroupChange = (event: SelectChangeEvent) => {
+    setSelectedGroup(event.target.value);
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -437,6 +470,14 @@ export default function RecruitmentDashboard({ redcapConfig }: RecruitmentDashbo
 
   const chartData = processTimeSeriesData();
   const cumulativeData = processCumulativeData();
+
+  // Create gene stats for the dashboard header
+  const geneStats = data.reduce((acc, curr) => {
+    if (curr.gene) {
+      acc[curr.gene] = (acc[curr.gene] || 0) + 1;
+    }
+    return acc;
+  }, {} as { [key: string]: number });
 
   return (
     <Box sx={{ 
@@ -529,15 +570,14 @@ export default function RecruitmentDashboard({ redcapConfig }: RecruitmentDashbo
                   </Grid>
                   <Grid item xs={12} sm={6} md={4}>
                     <FormControl fullWidth>
-                      <InputLabel>Group 2</InputLabel>
+                      <InputLabel>Group By</InputLabel>
                       <Select
-                        value={selectedGroup2}
-                        label="Group 2"
-                        onChange={(e: SelectChangeEvent) => setSelectedGroup2(e.target.value)}
+                        value={selectedGroup}
+                        label="Group By"
+                        onChange={handleGroupChange}
                       >
-                        <MenuItem value="ALL">All</MenuItem>
-                        {otherGroupFields.map((field) => (
-                          <MenuItem key={field.redcapField} value={field.redcapField}>
+                        {Object.entries(GROUP_FIELDS).map(([key, field]) => (
+                          <MenuItem key={key} value={key}>
                             {field.displayName}
                           </MenuItem>
                         ))}
@@ -665,7 +705,7 @@ export default function RecruitmentDashboard({ redcapConfig }: RecruitmentDashbo
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ name, percent }) => selectedGroup2 === 'ALL' ? name : `${name} (${(percent * 100).toFixed(0)}%)`}
+                    label={({ name, percent }) => selectedGroup === 'ALL' ? name : `${name} (${(percent * 100).toFixed(0)}%)`}
                     outerRadius="80%"
                     fill="#8884d8"
                     dataKey="value"
@@ -704,12 +744,12 @@ export default function RecruitmentDashboard({ redcapConfig }: RecruitmentDashbo
                   />
                   <Tooltip />
                   <Legend />
-                  {selectedGroup2 === 'ALL' ? (
+                  {selectedGroup === 'ALL' ? (
                     <Bar dataKey="Total" fill={COLORS[0]} />
                   ) : (
                     Array.from(new Set(data.map(record => {
-                      const value2 = record[selectedGroup2] as string;
-                      const fieldConfig2 = fields.groups.find(f => f.redcapField === selectedGroup2);
+                      const value2 = record[selectedGroup] as string;
+                      const fieldConfig2 = fields.groups.find(f => f.redcapField === selectedGroup);
                       const mappings2 = fieldConfig2?.valueMappings as { [key: string]: string } | undefined;
                       return mappings2?.[value2] ?? value2;
                     }))).map((category, index) => (
@@ -840,6 +880,101 @@ export default function RecruitmentDashboard({ redcapConfig }: RecruitmentDashbo
           </ResponsiveChart>
         </Paper>
       </Box>
+
+      <Paper 
+        elevation={1} 
+        square
+        sx={{ 
+          width: '100%',
+          mt: 3,
+          bgcolor: 'background.paper',
+        }}
+      >
+        <Box sx={{ 
+          width: '100%',
+          margin: '0 auto',
+          px: { xs: 2, sm: 3, md: 4 },
+        }}>
+          <Grid container spacing={3}>
+            <Grid item xs={12}>
+              <Typography variant="h6" gutterBottom>
+                Gene Distribution
+              </Typography>
+            </Grid>
+            <Grid item xs={12}>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                {Object.entries(geneStats).sort(([a], [b]) => a.localeCompare(b)).map(([gene, count]) => (
+                  <Chip
+                    key={gene}
+                    label={`${gene}: ${count}`}
+                    color={selectedGene === gene ? 'primary' : 'default'}
+                    onClick={() => setSelectedGene(gene)}
+                    sx={{ m: 0.5 }}
+                  />
+                ))}
+              </Box>
+            </Grid>
+          </Grid>
+        </Box>
+      </Paper>
+
+      <Paper 
+        elevation={1} 
+        square
+        sx={{ 
+          width: '100%',
+          mt: 3,
+          bgcolor: 'background.paper',
+        }}
+      >
+        <Box sx={{ 
+          width: '100%',
+          margin: '0 auto',
+          px: { xs: 2, sm: 3, md: 4 },
+        }}>
+          <Grid container spacing={3}>
+            <Grid item xs={12}>
+              <Typography variant="h6" gutterBottom>
+                Last Updated
+              </Typography>
+            </Grid>
+            <Grid item xs={12}>
+              <Typography variant="body2" color="text.secondary">
+                {lastUpdateTime ? new Date(lastUpdateTime).toLocaleString() : 'Never'}
+              </Typography>
+            </Grid>
+          </Grid>
+        </Box>
+      </Paper>
+
+      <Paper 
+        elevation={1} 
+        square
+        sx={{ 
+          width: '100%',
+          mt: 3,
+          bgcolor: 'background.paper',
+        }}
+      >
+        <Box sx={{ 
+          width: '100%',
+          margin: '0 auto',
+          px: { xs: 2, sm: 3, md: 4 },
+        }}>
+          <Grid container spacing={3}>
+            <Grid item xs={12}>
+              <Button
+                variant="contained"
+                startIcon={<RefreshIcon />}
+                onClick={handleRefresh}
+                disabled={isLoading}
+              >
+                {isLoading ? <CircularProgress size={24} /> : 'Refresh Data'}
+              </Button>
+            </Grid>
+          </Grid>
+        </Box>
+      </Paper>
     </Box>
   );
 } 
