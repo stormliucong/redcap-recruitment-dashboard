@@ -4,7 +4,8 @@ services:
   redcap-dashboard:
     build: .
     ports:
-      - "3000:3000"
-    restart: unless-stopped
+      - "80:80"
     environment:
-      - NODE_ENV=production 
+      - VITE_REDCAP_API_URL=${VITE_REDCAP_API_URL}
+      - VITE_REDCAP_API_TOKEN=${VITE_REDCAP_API_TOKEN}
+    restart: unless-stopped 
