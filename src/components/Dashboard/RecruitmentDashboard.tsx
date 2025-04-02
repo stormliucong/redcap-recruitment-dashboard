@@ -37,11 +37,9 @@ import {
 import { 
   format, 
   parseISO, 
-  endOfWeek, 
   eachWeekOfInterval, 
   subMonths,
   addMonths,
-  startOfMonth,
   differenceInMonths,
   isAfter,
 } from 'date-fns'
@@ -145,7 +143,6 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
   };
 
   // Get gene field and other group fields
-  const geneField = fields.groups.find(f => f.redcapField === 'gene');
   const otherGroupFields = fields.groups.filter(f => f.redcapField !== 'gene');
 
   // Get unique gene values from the data
@@ -207,7 +204,6 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
 
     const dateField = selectedTimestamp;
     const now = new Date();
-    const startDate = subMonths(now, 12);
     const intervals = Array.from({ length: 12 }, (_, i) => subMonths(now, 11 - i));
 
     // Calculate cumulative totals for each month
@@ -252,7 +248,7 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
     setCategories(Array.from(uniqueValues));
   }, [selectedGroup, data, fields.groups]);
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
 
@@ -335,23 +331,12 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
   };
 
   // Get unique categories for group2
-  const getUniqueCategories = (field: string) => {
-    if (field === 'ALL') return ['Total'];
-    const fieldConfig = fields.groups.find(f => f.redcapField === field);
-    const mappings = fieldConfig?.valueMappings as { [key: string]: string } | undefined;
-    const uniqueValues = new Set(data.map(record => {
-      const value = record[field] as string;
-      return mappings?.[value] ?? value;
-    }));
-    return Array.from(uniqueValues);
-  };
 
   const processCumulativeData = (): CumulativeDataPoint[] => {
     if (!selectedTimestamp || selectedTimestamp === 'ALL') return [];
 
     const dateField = selectedTimestamp;
     const now = new Date();
-    const startDate = subMonths(now, 12);
     const intervals = Array.from({ length: 12 }, (_, i) => subMonths(now, 11 - i));
 
     // Filter data based on selected gene
@@ -773,7 +758,7 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
                     fill="#8884d8"
                     dataKey="value"
                   >
-                    {chartData.map((entry, index) => (
+                    {chartData.map((_entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
