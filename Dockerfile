@@ -12,10 +12,8 @@ RUN npm install
 # Copy source code
 COPY . .
 
-# Clean install with no optional deps and full rebuild
-RUN rm -rf node_modules package-lock.json \
-    && npm install --omit=optional \
-    && npm rebuild
+# Build the application
+RUN npm run build
 
 # Production stage
 FROM nginx:alpine
