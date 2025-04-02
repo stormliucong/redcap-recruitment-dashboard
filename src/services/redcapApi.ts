@@ -121,7 +121,7 @@ export class RedcapApiService {
     return records.map(record => {
       const participantData: ParticipantData = {
         record_id: record.record_id,
-        age: record.current_age_yr,
+        age: 'na',
         consent_location: record.consent_bch,
         location_country: record.location_country,
         gene: record.gene,
@@ -130,11 +130,13 @@ export class RedcapApiService {
       };
 
       // Process age into groups
-      const age = parseInt(record.current_age_yr);
-      if (age <= 6) participantData.age = '0-6';
-      else if (age <= 17) participantData.age = '7-17';
-      else if (age <= 65) participantData.age = '18-65';
-      else participantData.age = '65+';
+      if (record.current_age_yr !== '') {
+        const age = parseInt(record.current_age_yr);
+        if (age <= 6) participantData.age = '0-6';
+        else if (age <= 17) participantData.age = '7-17';
+        else if (age <= 65) participantData.age = '18-65';
+        else participantData.age = '65+';
+      }
 
       // Process consent location
       if (record.consent_bch === '1') {
