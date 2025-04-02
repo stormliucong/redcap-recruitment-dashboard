@@ -46,6 +46,7 @@ import {
   isAfter,
 } from 'date-fns'
 import RefreshIcon from '@mui/icons-material/Refresh'
+import DownloadIcon from '@mui/icons-material/Download'
 
 interface RecruitmentDashboardProps {
   redcapConfig: RedcapConfig
@@ -121,7 +122,7 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
-export default function RecruitmentDashboard({ redcapConfig }: RecruitmentDashboardProps) {
+const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfig }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<ParticipantData[]>([]);
@@ -171,9 +172,9 @@ export default function RecruitmentDashboard({ redcapConfig }: RecruitmentDashbo
 
   useEffect(() => {
     const fetchData = async () => {
+      setIsLoading(true);
+      setError(null);
       try {
-        setLoading(true);
-        setError(null);
         const service = new RedcapApiService(redcapConfig);
         const recruitmentData = await service.fetchRecruitmentData();
         setData(recruitmentData);
@@ -188,11 +189,12 @@ export default function RecruitmentDashboard({ redcapConfig }: RecruitmentDashbo
         if (!selectedTimestamp) {
           setSelectedTimestamp(fields.timestamps[0].redcapField);
         }
+        setLastUpdateTime(new Date().toISOString());
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred while fetching data');
       } finally {
+        setIsLoading(false);
         setLoading(false);
-        setLastUpdateTime(new Date().toISOString());
       }
     };
 
@@ -444,8 +446,41 @@ export default function RecruitmentDashboard({ redcapConfig }: RecruitmentDashbo
     return dataPoints;
   };
 
-  const handleRefresh = () => {
-    fetchData();
+  const handleForceRefresh = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const service = new RedcapApiService(redcapConfig);
+      const response = await service.fetchRecruitmentData(true); // Pass true to force refresh
+      setData(response);
+      setLastUpdateTime(new Date().toISOString());
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      setError(error instanceof Error ? error.message : 'An error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDownloadCache = () => {
+    try {
+      // Create a JSON blob with the current data
+      const dataStr = JSON.stringify(data, null, 2);
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      
+      // Create a temporary link and trigger download
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `redcap-data-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading data:', error);
+      setError('Failed to download data');
+    }
   };
 
   const handleGroupChange = (event: SelectChangeEvent) => {
@@ -504,6 +539,34 @@ export default function RecruitmentDashboard({ redcapConfig }: RecruitmentDashbo
         }}>
           <Grid container spacing={3}>
             <Grid item xs={12}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                <Typography variant="h5" component="h2">
+                  Recruitment Dashboard
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                  {lastUpdateTime && (
+                    <Typography variant="body2" color="text.secondary">
+                      Last updated: {new Date(lastUpdateTime).toLocaleString()}
+                    </Typography>
+                  )}
+                  <Button
+                    variant="outlined"
+                    startIcon={<RefreshIcon />}
+                    onClick={handleForceRefresh}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? <CircularProgress size={24} /> : 'Force Refresh'}
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    startIcon={<DownloadIcon />}
+                    onClick={handleDownloadCache}
+                    disabled={isLoading || data.length === 0}
+                  >
+                    Download Data
+                  </Button>
+                </Box>
+              </Box>
               <Tabs 
                 value={tabValue} 
                 onChange={handleTabChange} 
@@ -917,64 +980,8 @@ export default function RecruitmentDashboard({ redcapConfig }: RecruitmentDashbo
           </Grid>
         </Box>
       </Paper>
-
-      <Paper 
-        elevation={1} 
-        square
-        sx={{ 
-          width: '100%',
-          mt: 3,
-          bgcolor: 'background.paper',
-        }}
-      >
-        <Box sx={{ 
-          width: '100%',
-          margin: '0 auto',
-          px: { xs: 2, sm: 3, md: 4 },
-        }}>
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <Typography variant="h6" gutterBottom>
-                Last Updated
-              </Typography>
-            </Grid>
-            <Grid item xs={12}>
-              <Typography variant="body2" color="text.secondary">
-                {lastUpdateTime ? new Date(lastUpdateTime).toLocaleString() : 'Never'}
-              </Typography>
-            </Grid>
-          </Grid>
-        </Box>
-      </Paper>
-
-      <Paper 
-        elevation={1} 
-        square
-        sx={{ 
-          width: '100%',
-          mt: 3,
-          bgcolor: 'background.paper',
-        }}
-      >
-        <Box sx={{ 
-          width: '100%',
-          margin: '0 auto',
-          px: { xs: 2, sm: 3, md: 4 },
-        }}>
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <Button
-                variant="contained"
-                startIcon={<RefreshIcon />}
-                onClick={handleRefresh}
-                disabled={isLoading}
-              >
-                {isLoading ? <CircularProgress size={24} /> : 'Refresh Data'}
-              </Button>
-            </Grid>
-          </Grid>
-        </Box>
-      </Paper>
     </Box>
   );
-} 
+};
+
+export default RecruitmentDashboard; 

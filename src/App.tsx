@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react'
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom'
+import { useState } from 'react'
 import {
   AppBar,
   Toolbar,
@@ -13,7 +12,8 @@ import {
   Chip,
 } from '@mui/material'
 import type { RedcapConfig } from './services/redcapApi'
-import ConfigPage from './components/Config/ConfigPage'
+import RefreshIcon from '@mui/icons-material/Refresh';
+import DownloadIcon from '@mui/icons-material/Download';
 import RecruitmentDashboard from './components/Dashboard/RecruitmentDashboard'
 
 const theme = createTheme({
@@ -61,101 +61,55 @@ const DEFAULT_CONFIG: RedcapConfig = {
   apiToken: import.meta.env.VITE_REDCAP_API_TOKEN || '',
   fields: {
     groups: [
-      { redcapField: 'gene', displayName: 'Gene', type: 'group' as const, valueMappings: {} },
-      { redcapField: 'consent_location', displayName: 'Consent Location', type: 'group' as const, valueMappings: {} },
-      { redcapField: 'age', displayName: 'Age Group', type: 'group' as const, valueMappings: {} },
-      { redcapField: 'is_international', displayName: 'Is International', type: 'group' as const, valueMappings: {} },
+      { redcapField: 'gene', displayName: 'Gene', type: 'group', valueMappings: {} },
+      { redcapField: 'consent_location', displayName: 'Consent Location', type: 'group', valueMappings: {} },
+      { redcapField: 'location_country', displayName: 'Location', type: 'group', valueMappings: {} }
     ],
     timestamps: [
-      { redcapField: 'consent_date', displayName: 'Consent Date', type: 'timestamp' as const },
-      { redcapField: 'survey_completion_date', displayName: 'Survey Completion', type: 'timestamp' as const },
-    ],
-  },
+      { redcapField: 'consent_date', displayName: 'Consent Date', type: 'timestamp' },
+      { redcapField: 'survey_completion_date', displayName: 'Survey Completion', type: 'timestamp' }
+    ]
+  }
 }
 
 function App() {
-  const [config, setConfig] = useState<RedcapConfig | null>(() => {
-    const savedConfig = localStorage.getItem('redcapConfig')
-    return savedConfig ? JSON.parse(savedConfig) : DEFAULT_CONFIG
-  })
-
-  const handleConfigSave = (newConfig: RedcapConfig) => {
-    setConfig(newConfig)
-    localStorage.setItem('redcapConfig', JSON.stringify(newConfig))
-  }
+  const [config] = useState<RedcapConfig>(DEFAULT_CONFIG);
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Router>
-        <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-          <AppBar position="static">
-            <Container maxWidth={false}>
-              <Toolbar disableGutters>
-                <Typography variant="h6" component="div" sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
-                  REDCap Recruitment Dashboard
-                  {!config?.apiUrl && (
-                    <Chip
-                      label="Demo Mode"
-                      color="primary"
-                      size="small"
-                      sx={{ ml: 2 }}
-                    />
-                  )}
-                </Typography>
-                <Box>
-                  <Button color="inherit" component={Link} to="/" sx={{ mx: 1 }}>
-                    Dashboard
-                  </Button>
-                  <Button color="inherit" component={Link} to="/config" sx={{ mx: 1 }}>
-                    Configuration
-                  </Button>
-                </Box>
-              </Toolbar>
-            </Container>
-          </AppBar>
-
-          <Container maxWidth={false} sx={{ flex: 1, py: 4 }}>
-            <Routes>
-              <Route
-                path="/"
-                element={
-                  config ? (
-                    <RecruitmentDashboard redcapConfig={config} />
-                  ) : (
-                    <Box sx={{ 
-                      textAlign: 'center', 
-                      mt: 8,
-                      p: 3,
-                      maxWidth: 600,
-                      mx: 'auto'
-                    }}>
-                      <Typography variant="h5" gutterBottom>
-                        Welcome to REDCap Recruitment Dashboard
-                      </Typography>
-                      <Typography variant="body1" gutterBottom>
-                        Please configure your REDCap API settings to get started.
-                      </Typography>
-                      <Button
-                        variant="contained"
-                        component={Link}
-                        to="/config"
-                        sx={{ mt: 2 }}
-                      >
-                        Configure Dashboard
-                      </Button>
-                    </Box>
-                  )
-                }
-              />
-              <Route
-                path="/config"
-                element={<ConfigPage onSaveConfig={handleConfigSave} initialConfig={config} />}
-              />
-            </Routes>
+      <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        <AppBar position="static">
+          <Container maxWidth={false}>
+            <Toolbar disableGutters>
+              <Typography variant="h6" component="div" sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
+                REDCap Recruitment Dashboard
+                {!config?.apiUrl && (
+                  <Chip
+                    label="Demo Mode"
+                    color="primary"
+                    size="small"
+                    sx={{ ml: 2 }}
+                  />
+                )}
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <Button
+                  color="inherit"
+                  startIcon={<RefreshIcon />}
+                  onClick={() => window.location.reload()}
+                >
+                  Refresh Page
+                </Button>
+              </Box>
+            </Toolbar>
           </Container>
-        </Box>
-      </Router>
+        </AppBar>
+
+        <Container maxWidth={false} sx={{ flex: 1, py: 4 }}>
+          <RecruitmentDashboard redcapConfig={config} />
+        </Container>
+      </Box>
     </ThemeProvider>
   )
 }

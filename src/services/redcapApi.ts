@@ -1,4 +1,5 @@
-import { MockRedcapApiService } from './mockRedcapApi'
+import { RedcapConfig, ParticipantData, FieldMapping } from './types';
+import { MockRedcapApiService } from './mockRedcapApi';
 
 export const GENE_MAPPINGS: { [key: string]: string } = {
   '1': 'KIF1A',
@@ -23,63 +24,34 @@ export const GENE_MAPPINGS: { [key: string]: string } = {
   '23': 'KCNQ3'
 };
 
-export interface RedcapConfig {
-  apiUrl: string;
-  apiToken: string;
-  batchNumber?: number;
-  timeout?: number;
-  maxCacheEntries?: number;
-}
-
-export interface FieldMapping {
-  redcapField: string;
-  displayName: string;
-  type: 'group' | 'timestamp';
-  valueMappings?: {
-    [key: string]: string; // maps original value to display value
-  };
-}
-
-export interface ParticipantData {
-  record_id: string;
-  age: string;
-  consent_location: string;
-  location_country: string;
-  gene: string;
-  consent_date: string;
-  [key: string]: string | undefined;
-}
-
 export class RedcapApiService {
-  private config: RedcapConfig;
+  private apiUrl: string;
+  private apiToken: string;
+  private batchNumber: number;
+  private timeout: number;
   private mockService: MockRedcapApiService | null = null;
   private readonly DEFAULT_TIMEOUT = 30000; // 30 seconds
   private readonly DEFAULT_BATCH_SIZE = 100;
-  private readonly DEFAULT_MAX_CACHE_ENTRIES = 10;
-  private readonly CACHE_KEY_PREFIX = 'redcap_data_';
 
   constructor(config: RedcapConfig) {
-    this.config = {
-      ...config,
-      batchNumber: config.batchNumber || this.DEFAULT_BATCH_SIZE,
-      timeout: config.timeout || this.DEFAULT_TIMEOUT,
-      maxCacheEntries: config.maxCacheEntries || this.DEFAULT_MAX_CACHE_ENTRIES
-    };
+    this.apiUrl = config.apiUrl;
+    this.apiToken = config.apiToken;
+    this.batchNumber = config.batchNumber || this.DEFAULT_BATCH_SIZE;
+    this.timeout = config.timeout || this.DEFAULT_TIMEOUT;
     // Use mock service if VITE_USE_MOCK is true
     if (import.meta.env.VITE_USE_MOCK === 'true') {
-      console.log('Using mock REDCap service');
       this.mockService = new MockRedcapApiService();
     }
   }
 
   private async fetchWithTimeout(url: string, options: RequestInit): Promise<Response> {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.config.timeout);
+    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
     try {
       const response = await fetch(url, {
         ...options,
-        signal: controller.signal
+        signal: controller.signal,
       });
       clearTimeout(timeoutId);
       return response;
@@ -91,191 +63,136 @@ export class RedcapApiService {
 
   private async fetchAllRecordIds(): Promise<string[]> {
     const formData = new URLSearchParams();
-    formData.append('token', this.config.apiToken);
+    formData.append('token', this.apiToken);
     formData.append('content', 'record');
-    formData.append('format', 'json');
     formData.append('type', 'flat');
     formData.append('fields', 'record_id');
+    formData.append('format', 'json');
     formData.append('returnFormat', 'json');
 
-    const response = await this.fetchWithTimeout(this.config.apiUrl, {
+    const response = await this.fetchWithTimeout(this.apiUrl, {
       method: 'POST',
+      body: formData,
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: formData
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`REDCap API error: ${response.status} ${response.statusText}\n${errorText}`);
+      throw new Error(`Failed to fetch record IDs: ${response.statusText}`);
     }
 
     const data = await response.json();
-    return data
-      .map((record: any) => record.record_id)
-      .filter((id: string) => id.includes('NHS'));
+    return data.map((record: any) => record.record_id);
   }
 
   private async fetchBatch(recordIds: string[]): Promise<ParticipantData[]> {
-    const fields = [
-      'record_id',
-      'current_age_yr',
-      'consent_bch',
-      'location_country',
-      'gene',
-      'consent_bch_date'
-    ];
-
     const formData = new URLSearchParams();
-    formData.append('token', this.config.apiToken);
+    formData.append('token', this.apiToken);
     formData.append('content', 'record');
-    formData.append('format', 'json');
     formData.append('type', 'flat');
-    formData.append('fields', fields.join(','));
-    formData.append('returnFormat', 'json');
     formData.append('records', recordIds.join(','));
+    formData.append('fields[0]', 'record_id');
+    formData.append('fields[1]', 'current_age_yr');
+    formData.append('fields[2]', 'consent_bch');
+    formData.append('fields[3]', 'location_country');
+    formData.append('fields[4]', 'gene');
+    formData.append('fields[5]', 'consent_bch_date');
+    formData.append('format', 'json');
+    formData.append('returnFormat', 'json');
 
-    const response = await this.fetchWithTimeout(this.config.apiUrl, {
+    const response = await this.fetchWithTimeout(this.apiUrl, {
       method: 'POST',
+      body: formData,
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: formData
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`REDCap API error: ${response.status} ${response.statusText}\n${errorText}`);
+      throw new Error(`Failed to fetch batch: ${response.statusText}`);
     }
 
     const data = await response.json();
     return this.processParticipantData(data);
   }
 
-  private saveToCache(data: ParticipantData[]): void {
-    try {
-      const timestamp = new Date().toISOString();
-      const cacheKey = `${this.CACHE_KEY_PREFIX}${timestamp}`;
-      
-      // Save the new data
-      localStorage.setItem(cacheKey, JSON.stringify(data));
-      console.log(`Data cached with key: ${cacheKey}`);
+  private processParticipantData(records: any[]): ParticipantData[] {
+    return records.map(record => {
+      const participantData: ParticipantData = {
+        record_id: record.record_id,
+        age: record.current_age_yr,
+        consent_location: record.consent_bch,
+        location_country: record.location_country,
+        gene: record.gene,
+        consent_date: record.consent_bch_date,
+        survey_completion_date: '', // This field is not available in the current data
+      };
 
-      // Clean up old cache entries
-      this.cleanupCache();
-    } catch (error) {
-      console.error('Error saving to cache:', error);
-    }
-  }
-
-  private cleanupCache(): void {
-    try {
-      // Get all cache keys
-      const cacheKeys = Object.keys(localStorage)
-        .filter(key => key.startsWith(this.CACHE_KEY_PREFIX))
-        .sort();
-
-      // Remove oldest entries if we exceed maxCacheEntries
-      const maxEntries = this.config.maxCacheEntries || this.DEFAULT_MAX_CACHE_ENTRIES;
-      while (cacheKeys.length > maxEntries) {
-        const oldestKey = cacheKeys.shift();
-        if (oldestKey) {
-          localStorage.removeItem(oldestKey);
-          console.log(`Removed old cache entry: ${oldestKey}`);
-        }
-      }
-    } catch (error) {
-      console.error('Error cleaning up cache:', error);
-    }
-  }
-
-  async fetchRecruitmentData(): Promise<ParticipantData[]> {
-    // If using mock service, return mock data
-    if (this.mockService) {
-      return this.mockService.fetchRecruitmentData();
-    }
-
-    try {
-      const formData = new FormData();
-      formData.append('token', this.config.apiToken);
-      formData.append('content', 'record');
-      formData.append('format', 'json');
-      formData.append('type', 'flat');
-      formData.append('fields[0]', 'record_id');
-      formData.append('fields[1]', 'current_age_yr');
-      formData.append('fields[2]', 'consent_bch');
-      formData.append('fields[3]', 'location_country');
-      formData.append('fields[4]', 'gene');
-      formData.append('fields[5]', 'consent_bch_date');
-
-      const response = await fetch(this.config.apiUrl, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`REDCap API error: ${response.status} - ${errorText}`);
-      }
-
-      const rawData = await response.json();
-      return this.processParticipantData(rawData);
-    } catch (error) {
-      console.error('Error fetching data from REDCap:', error);
-      throw error;
-    }
-  }
-
-  private processParticipantData(rawData: any[]): ParticipantData[] {
-    return rawData.map(record => {
       // Process age into groups
-      const age = record.current_age_yr || '';
-      let ageGroup = 'n/a';
-      if (age) {
-        const ageNum = parseInt(age);
-        if (ageNum <= 6) ageGroup = '0-6';
-        else if (ageNum <= 17) ageGroup = '7-17';
-        else if (ageNum <= 65) ageGroup = '18-65';
-        else ageGroup = '65+';
-      }
+      const age = parseInt(record.current_age_yr);
+      if (age <= 6) participantData.age = '0-6';
+      else if (age <= 17) participantData.age = '7-17';
+      else if (age <= 65) participantData.age = '18-65';
+      else participantData.age = '65+';
 
-      // Determine consent location (1 = Boston, anything else = Others)
-      const consentLocation = record.consent_bch === '1' ? 'Boston' : 'Others';
+      // Process consent location
+      if (record.consent_bch === '1') {
+        participantData.consent_location = 'Boston';
+      } else {
+        participantData.consent_location = 'Others';
+      }
 
       // Map location_country (1 = United States, anything else = Others)
       const locationCountry = record.location_country === '1' ? 'United States' : 'Others';
+      participantData.location_country = locationCountry;
 
       // Map gene value to actual gene name
       const geneValue = record.gene || '';
       const geneName = GENE_MAPPINGS[geneValue] || geneValue;
-
-      const participantData: ParticipantData = {
-        record_id: record.record_id || '',
-        age: ageGroup,
-        consent_location: consentLocation,
-        location_country: locationCountry,
-        gene: geneName,
-        consent_date: record.consent_bch_date || ''
-      };
+      participantData.gene = geneName;
 
       return participantData;
     });
   }
 
-  async getMetadata(): Promise<any[]> {
-    if (this.mockService) {
-      return this.mockService.getMetadata();
-    }
-
+  async fetchRecruitmentData(forceRefresh: boolean = false): Promise<ParticipantData[]> {
     try {
-      const response = await fetch(this.config.apiUrl, {
+      // Fetch all record IDs
+      const allRecordIds = await this.fetchAllRecordIds();
+      
+      // Filter for NHS records
+      const nhsRecordIds = allRecordIds.filter(id => id.includes('NHS'));
+      
+      // Process in batches
+      const batches: string[][] = [];
+      for (let i = 0; i < nhsRecordIds.length; i += this.batchNumber) {
+        batches.push(nhsRecordIds.slice(i, i + this.batchNumber));
+      }
+
+      // Fetch each batch and combine results
+      const allData: ParticipantData[] = [];
+      for (const batch of batches) {
+        const batchData = await this.fetchBatch(batch);
+        allData.push(...batchData);
+      }
+
+      return allData;
+    } catch (error) {
+      console.error('Error fetching recruitment data:', error);
+      throw error;
+    }
+  }
+
+  async getMetadata(): Promise<any[]> {
+    try {
+      const response = await fetch(this.apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: new URLSearchParams({
-          token: this.config.apiToken,
+          token: this.apiToken,
           content: 'metadata',
           format: 'json',
           returnFormat: 'json',
@@ -283,11 +200,10 @@ export class RedcapApiService {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`Failed to fetch metadata: ${response.statusText}`);
       }
 
-      const metadata = await response.json();
-      return metadata;
+      return await response.json();
     } catch (error) {
       console.error('Error fetching metadata:', error);
       throw error;
@@ -295,11 +211,10 @@ export class RedcapApiService {
   }
 }
 
-// Create a singleton instance with default timeout and batch size
+// Create a singleton instance
 export const redcapApi = new RedcapApiService({
   apiUrl: import.meta.env.VITE_REDCAP_API_URL || '',
   apiToken: import.meta.env.VITE_REDCAP_API_TOKEN || '',
   timeout: 30000, // 30 seconds
   batchNumber: 100,
-  maxCacheEntries: 10
 }); 
