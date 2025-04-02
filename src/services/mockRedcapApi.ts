@@ -1,5 +1,6 @@
 import type { ParticipantData } from './redcapApi'
 import { subDays, format } from 'date-fns';
+import { GENE_MAPPINGS } from './redcapApi';
 
 // Sample metadata that mimics REDCap fields
 const MOCK_METADATA = [
@@ -51,22 +52,46 @@ const generateMockParticipants = (count: number = 100): ParticipantData[] => {
 };
 
 export class MockRedcapApiService {
-  private participants: ParticipantData[];
+  private generateMockData(): ParticipantData[] {
+    const mockData: ParticipantData[] = [];
+    const geneKeys = Object.keys(GENE_MAPPINGS);
+    const locations = ['Boston', 'New York', 'Chicago', 'Los Angeles'];
+    const countries = ['United States', 'Canada', 'United Kingdom', 'Australia'];
 
-  constructor() {
-    this.participants = generateMockParticipants();
+    // Generate 100 mock records
+    for (let i = 0; i < 100; i++) {
+      const geneKey = geneKeys[Math.floor(Math.random() * geneKeys.length)];
+      const geneName = GENE_MAPPINGS[geneKey];
+      
+      mockData.push({
+        record_id: `NHS${i + 1}`,
+        age: this.getRandomAgeGroup(),
+        consent_location: locations[Math.floor(Math.random() * locations.length)],
+        is_international: Math.random() > 0.7,
+        gene: geneName,
+        consent_date: this.getRandomDate(new Date(2023, 0, 1), new Date())
+      });
+    }
+
+    return mockData;
+  }
+
+  private getRandomAgeGroup(): string {
+    const groups = ['0-4', '5-9', '10-14', '15-19', '20+'];
+    return groups[Math.floor(Math.random() * groups.length)];
+  }
+
+  private getRandomDate(start: Date, end: Date): string {
+    const date = new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+    return date.toISOString().split('T')[0];
   }
 
   async fetchRecruitmentData(): Promise<ParticipantData[]> {
-    return new Promise(resolve => {
-      setTimeout(() => resolve(this.participants), 500);
-    });
+    return this.generateMockData();
   }
 
   async getMetadata(): Promise<any[]> {
-    return new Promise(resolve => {
-      setTimeout(() => resolve(MOCK_METADATA), 500);
-    });
+    return [];
   }
 
   getFieldValues(field: string): string[] {

@@ -1,5 +1,28 @@
 import { MockRedcapApiService } from './mockRedcapApi'
 
+export const GENE_MAPPINGS: { [key: string]: string } = {
+  '1': 'KIF1A',
+  '2': 'PHIP',
+  '3': 'PPP2R5D',
+  '4': 'MAPK8IP3',
+  '5': 'CTNNB1',
+  '6': 'PACS2',
+  '7': 'CACNA1A',
+  '8': 'TNPO2',
+  '9': 'DHPS',
+  '10': 'HNRNPUL2',
+  '11': 'KIF1C',
+  '12': 'TKT',
+  '13': 'SLC1A4',
+  '14': 'CACNA1G',
+  '15': 'CDC42BPB',
+  '16': 'SLCGA1',
+  '17': 'GPT2',
+  '18': 'TUBB4A',
+  '19': 'MEF2C',
+  '23': 'KCNQ3'
+};
+
 export interface RedcapConfig {
   apiUrl: string;
   apiToken: string;
@@ -221,12 +244,16 @@ export class RedcapApiService {
       // Check if international
       const isInternational = record.location_country !== 'United States';
 
+      // Map gene value to actual gene name
+      const geneValue = record.gene || '';
+      const geneName = GENE_MAPPINGS[geneValue] || geneValue;
+
       const participantData: ParticipantData = {
         record_id: record.record_id || '',
         age: ageGroup,
         consent_location: consentLocation,
         is_international: isInternational,
-        gene: record.gene || '',
+        gene: geneName,
         consent_date: record.consent_bch_date || ''
       };
 
