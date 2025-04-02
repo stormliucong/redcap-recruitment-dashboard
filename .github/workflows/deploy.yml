@@ -53,5 +53,5 @@ jobs:
             git pull origin main
             echo "VITE_REDCAP_API_URL=${{ secrets.VITE_REDCAP_API_URL }}" > .env
             echo "VITE_REDCAP_API_TOKEN=${{ secrets.VITE_REDCAP_API_TOKEN }}" >> .env
-            docker-compose build --no-cache
-            docker-compose up -d 
+            docker compose build --no-cache
+            docker compose up -d 
