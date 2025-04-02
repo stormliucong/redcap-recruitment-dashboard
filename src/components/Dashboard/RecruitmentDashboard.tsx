@@ -175,8 +175,16 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
         'Native Hawaiian or Pacific Islander',
         'Black or African American',
         'White or Caucasian',
-        'None of these describe me',
-        'Prefer not to answer'
+        'Others',
+        'Unknown'
+      ]
+    },
+    ethnicity: {
+      displayName: 'Ethnicity',
+      values: [
+        'Hispanic or Latino',
+        'Not Hispanic or Latino',
+        'Unknown'
       ]
     }
   };

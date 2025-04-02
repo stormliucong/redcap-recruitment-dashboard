@@ -151,6 +151,7 @@ export class RedcapApiService {
     formData.append('fields[4]', 'gene');
     formData.append('fields[5]', 'consent_bch_date');
     formData.append('fields[6]', 'race');
+    formData.append('fields[7]', 'ethnicity');
     formData.append('format', 'json');
     formData.append('returnFormat', 'json');
 
@@ -175,7 +176,8 @@ export class RedcapApiService {
       const participantData: ParticipantData = {
         record_id: record.record_id,
         age: 'na',
-        race: 'unknown',
+        race: 'Unknown',
+        ethnicity: 'Unknown',
         consent_location: record.consent_bch,
         location_country: record.location_country,
         gene: record.gene,
@@ -209,6 +211,13 @@ export class RedcapApiService {
       if (record.race___5 === '1') participantData.race = 'White or Caucasian';
       if (record.race___6 === '1') participantData.race = 'Others';
       if (record.race___99 === '1') participantData.race = 'Unknown';
+
+      // Process ethnicity into groups
+      if (record.ethnicity === '1') participantData.ethnicity = 'Hispanic or Latino';
+      if (record.ethnicity === '0') participantData.ethnicity = 'Not Hispanic or Latino';
+      if (record.ethnicity === '99') participantData.ethnicity = 'Unknown';
+
+      
 
 
       // Process consent location
