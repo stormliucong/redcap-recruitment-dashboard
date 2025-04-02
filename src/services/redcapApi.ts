@@ -150,6 +150,7 @@ export class RedcapApiService {
     formData.append('fields[3]', 'location_country');
     formData.append('fields[4]', 'gene');
     formData.append('fields[5]', 'consent_bch_date');
+    formData.append('fields[6]', 'race');
     formData.append('format', 'json');
     formData.append('returnFormat', 'json');
 
@@ -174,6 +175,7 @@ export class RedcapApiService {
       const participantData: ParticipantData = {
         record_id: record.record_id,
         age: 'na',
+        race: 'unknown',
         consent_location: record.consent_bch,
         location_country: record.location_country,
         gene: record.gene,
@@ -189,6 +191,25 @@ export class RedcapApiService {
         else if (age <= 65) participantData.age = '18-65';
         else participantData.age = '65+';
       }
+
+      // Process race into groups
+      //1= American Indian or Alaksa Native
+// 2= Asian
+// 3= Native Hawaiian or Pacific Islander
+// 4= Black or African American
+// 5= White or Caucasian
+// 6= None of these describe me
+// 99= Prefer not to answer
+// [{"race___1":"0","race___2":"0","race___3":"0","race___4":"0","race___5":"1","race___6":"0","race___99":"0"},{"race___1":"","race___2":"","race___3":"","race___4":"","race___5":"","race___6":"","race___99":""}]
+      
+      if (record.race___1 === '1') participantData.race = 'American Indian or Alaksa Native';
+      if (record.race___2 === '1') participantData.race = 'Asian';
+      if (record.race___3 === '1') participantData.race = 'Native Hawaiian or Pacific Islander';
+      if (record.race___4 === '1') participantData.race = 'Black or African American';
+      if (record.race___5 === '1') participantData.race = 'White or Caucasian';
+      if (record.race___6 === '1') participantData.race = 'Others';
+      if (record.race___99 === '1') participantData.race = 'Unknown';
+
 
       // Process consent location
       if (record.consent_bch === '1') {

@@ -162,6 +162,18 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
     consent_location: {
       displayName: 'Consent Location',
       values: ['Boston', 'Others']
+    },
+    race: {
+      displayName: 'Race',
+      values: [
+        'American Indian or Alaska Native',
+        'Asian',
+        'Native Hawaiian or Pacific Islander',
+        'Black or African American',
+        'White or Caucasian',
+        'None of these describe me',
+        'Prefer not to answer'
+      ]
     }
   };
 
