@@ -13,7 +13,6 @@ import {
 } from '@mui/material'
 import type { RedcapConfig } from './services/redcapApi'
 import RefreshIcon from '@mui/icons-material/Refresh';
-import DownloadIcon from '@mui/icons-material/Download';
 import RecruitmentDashboard from './components/Dashboard/RecruitmentDashboard'
 
 const theme = createTheme({

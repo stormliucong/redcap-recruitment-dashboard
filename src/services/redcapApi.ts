@@ -1,5 +1,34 @@
-import { RedcapConfig, ParticipantData, FieldMapping } from './types';
+import axios from 'axios';
 import { MockRedcapApiService } from './mockRedcapApi';
+
+export interface RedcapConfig {
+  apiUrl: string;
+  apiToken: string;
+  fields: {
+    groups: FieldMapping[];
+    timestamps: FieldMapping[];
+  };
+  batchNumber?: number;
+  timeout?: number;
+}
+
+export interface FieldMapping {
+  redcapField: string;
+  displayName: string;
+  type: 'group' | 'timestamp';
+  valueMappings?: Record<string, string>;
+}
+
+export interface ParticipantData {
+  record_id: string;
+  age: string;
+  consent_location: string;
+  location_country: string;
+  gene: string;
+  consent_date: string;
+  survey_completion_date: string;
+  [key: string]: any;
+}
 
 export const GENE_MAPPINGS: { [key: string]: string } = {
   '1': 'KIF1A',
@@ -25,19 +54,18 @@ export const GENE_MAPPINGS: { [key: string]: string } = {
 };
 
 export class RedcapApiService {
-  private apiUrl: string;
-  private apiToken: string;
-  private batchNumber: number;
-  private timeout: number;
-  private mockService: MockRedcapApiService | null = null;
   private readonly DEFAULT_TIMEOUT = 30000; // 30 seconds
   private readonly DEFAULT_BATCH_SIZE = 100;
+  private config: RedcapConfig;
+  private batchSize: number;
+  private timeout: number;
+  private mockService?: MockRedcapApiService;
 
   constructor(config: RedcapConfig) {
-    this.apiUrl = config.apiUrl;
-    this.apiToken = config.apiToken;
-    this.batchNumber = config.batchNumber || this.DEFAULT_BATCH_SIZE;
+    this.config = config;
+    this.batchSize = config.batchNumber || this.DEFAULT_BATCH_SIZE;
     this.timeout = config.timeout || this.DEFAULT_TIMEOUT;
+
     // Use mock service if VITE_USE_MOCK is true
     if (import.meta.env.VITE_USE_MOCK === 'true') {
       this.mockService = new MockRedcapApiService();
@@ -61,16 +89,40 @@ export class RedcapApiService {
     }
   }
 
+  private async fetchMetadata(): Promise<any[]> {
+    if (this.mockService) {
+      return this.mockService.getMetadata();
+    }
+
+    try {
+      const response = await axios.post(
+        this.config.apiUrl,
+        {
+          token: this.config.apiToken,
+          content: 'metadata',
+          format: 'json',
+          type: 'flat',
+        },
+        { timeout: this.timeout }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching metadata:', error);
+      throw error;
+    }
+  }
+
+
   private async fetchAllRecordIds(): Promise<string[]> {
     const formData = new URLSearchParams();
-    formData.append('token', this.apiToken);
+    formData.append('token', this.config.apiToken);
     formData.append('content', 'record');
     formData.append('type', 'flat');
     formData.append('fields', 'record_id');
     formData.append('format', 'json');
     formData.append('returnFormat', 'json');
 
-    const response = await this.fetchWithTimeout(this.apiUrl, {
+    const response = await this.fetchWithTimeout(this.config.apiUrl, {
       method: 'POST',
       body: formData,
       headers: {
@@ -88,7 +140,7 @@ export class RedcapApiService {
 
   private async fetchBatch(recordIds: string[]): Promise<ParticipantData[]> {
     const formData = new URLSearchParams();
-    formData.append('token', this.apiToken);
+    formData.append('token', this.config.apiToken);
     formData.append('content', 'record');
     formData.append('type', 'flat');
     formData.append('records', recordIds.join(','));
@@ -101,7 +153,7 @@ export class RedcapApiService {
     formData.append('format', 'json');
     formData.append('returnFormat', 'json');
 
-    const response = await this.fetchWithTimeout(this.apiUrl, {
+    const response = await this.fetchWithTimeout(this.config.apiUrl, {
       method: 'POST',
       body: formData,
       headers: {
@@ -158,7 +210,7 @@ export class RedcapApiService {
     });
   }
 
-  async fetchRecruitmentData(forceRefresh: boolean = false): Promise<ParticipantData[]> {
+  async fetchRecruitmentData(_forceRefresh: boolean = false): Promise<ParticipantData[]> {
     try {
       // Fetch all record IDs
       const allRecordIds = await this.fetchAllRecordIds();
@@ -168,8 +220,8 @@ export class RedcapApiService {
       
       // Process in batches
       const batches: string[][] = [];
-      for (let i = 0; i < nhsRecordIds.length; i += this.batchNumber) {
-        batches.push(nhsRecordIds.slice(i, i + this.batchNumber));
+      for (let i = 0; i < nhsRecordIds.length; i += this.batchSize) {
+        batches.push(nhsRecordIds.slice(i, i + this.batchSize));
       }
 
       // Fetch each batch and combine results
@@ -187,29 +239,7 @@ export class RedcapApiService {
   }
 
   async getMetadata(): Promise<any[]> {
-    try {
-      const response = await fetch(this.apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          token: this.apiToken,
-          content: 'metadata',
-          format: 'json',
-          returnFormat: 'json',
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch metadata: ${response.statusText}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching metadata:', error);
-      throw error;
-    }
+    return await this.fetchMetadata();
   }
 }
 
@@ -217,6 +247,14 @@ export class RedcapApiService {
 export const redcapApi = new RedcapApiService({
   apiUrl: import.meta.env.VITE_REDCAP_API_URL || '',
   apiToken: import.meta.env.VITE_REDCAP_API_TOKEN || '',
+  fields: {
+    groups: [],
+    timestamps: []
+  },
   timeout: 30000, // 30 seconds
-  batchNumber: 100,
-}); 
+  batchNumber: 100
+});
+
+// Initialize mock service
+
+ 
