@@ -238,8 +238,8 @@ export class RedcapApiService {
         else ageGroup = '20+';
       }
 
-      // Determine consent location
-      const consentLocation = record.consent_bch || 'Other';
+      // Determine consent location (1 = Boston, anything else = Others)
+      const consentLocation = record.consent_bch === '1' ? 'Boston' : 'Others';
 
       // Check if international
       const isInternational = record.location_country !== 'United States';

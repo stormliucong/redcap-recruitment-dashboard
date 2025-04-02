@@ -55,8 +55,6 @@ export class MockRedcapApiService {
   private generateMockData(): ParticipantData[] {
     const mockData: ParticipantData[] = [];
     const geneKeys = Object.keys(GENE_MAPPINGS);
-    const locations = ['Boston', 'New York', 'Chicago', 'Los Angeles'];
-    const countries = ['United States', 'Canada', 'United Kingdom', 'Australia'];
 
     // Generate 100 mock records
     for (let i = 0; i < 100; i++) {
@@ -66,7 +64,7 @@ export class MockRedcapApiService {
       mockData.push({
         record_id: `NHS${i + 1}`,
         age: this.getRandomAgeGroup(),
-        consent_location: locations[Math.floor(Math.random() * locations.length)],
+        consent_location: Math.random() > 0.5 ? 'Boston' : 'Others', // 50% chance of being from Boston
         is_international: Math.random() > 0.7,
         gene: geneName,
         consent_date: this.getRandomDate(new Date(2023, 0, 1), new Date())
