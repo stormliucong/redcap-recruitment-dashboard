@@ -127,13 +127,11 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
   const [selectedGene, setSelectedGene] = useState('ALL');
   const [selectedGroup, setSelectedGroup] = useState('location_country');
   const [selectedTimestamp, setSelectedTimestamp] = useState('');
-  const [timeRange, setTimeRange] = useState<'weekly' | 'monthly' | 'all'>('weekly');
   const [tabValue, setTabValue] = useState(0);
   const [targetDate, setTargetDate] = useState(format(addMonths(new Date(), 12), 'yyyy-MM-dd'));
   const [targetNumber, setTargetNumber] = useState('1000');
   const [monthlyTarget, setMonthlyTarget] = useState<string>('');
   const [averageMonthlyGrowth, setAverageMonthlyGrowth] = useState<number>(0);
-  const [categories, setCategories] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdateTime, setLastUpdateTime] = useState<string | null>(null);
 
@@ -230,22 +228,9 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
     }
   }, [data, selectedTimestamp]);
 
-  // Update categories when selectedGroup changes
   useEffect(() => {
     if (!selectedGroup) return;
-    
-    if (selectedGroup === 'ALL') {
-      setCategories(['Total']);
-      return;
-    }
 
-    const fieldConfig = fields.groups.find(f => f.redcapField === selectedGroup);
-    const mappings = fieldConfig?.valueMappings as { [key: string]: string } | undefined;
-    const uniqueValues = new Set(data.map(record => {
-      const value = record[selectedGroup] as string;
-      return mappings?.[value] ?? value;
-    }));
-    setCategories(Array.from(uniqueValues));
   }, [selectedGroup, data, fields.groups]);
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
@@ -301,16 +286,15 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
 
     const dateField = selectedTimestamp;
     const now = new Date();
-    const startDate = timeRange === 'weekly' ? subMonths(now, 3) : subMonths(now, 12);
-    const intervals = timeRange === 'weekly'
-      ? eachWeekOfInterval({ start: startDate, end: now })
-      : Array.from({ length: 12 }, (_, i) => subMonths(now, 11 - i));
+    const startDate =  subMonths(now, 3) 
+    const intervals = eachWeekOfInterval({ start: startDate, end: now })
+      
 
     const group2Categories = getUniqueMappedCategories(group2Field, group2Config);
 
     return intervals.map(interval => {
       const intervalData: any = {
-        name: format(interval, timeRange === 'weekly' ? 'MMM dd' : 'MMM yyyy'),
+        name: format(interval, 'MMM dd'),
       };
 
       // Calculate counts for each category in group2
@@ -369,6 +353,10 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
         timestamp: intervalStart.getTime(),
         total: isCurrentOrPast ? total : undefined,
         category: 'Total',
+        projected: 0,
+        trendProjected: 0,
+        upperBound: 0,
+        lowerBound: 0,
       };
     });
 
