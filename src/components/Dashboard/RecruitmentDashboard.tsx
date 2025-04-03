@@ -31,7 +31,6 @@ import {
   Cell,
   LineChart,
   Line,
-  Area,
   ResponsiveContainer,
 } from 'recharts'
 import { 
@@ -54,10 +53,10 @@ interface CumulativeDataPoint {
   date: string;
   timestamp: number;
   total: number | undefined;
-  projected?: number;
-  trendProjected?: number;
-  upperBound?: number;
-  lowerBound?: number;
+  projected?: number | undefined;
+  trendProjected?: number | undefined;
+  upperBound?: number | undefined;
+  lowerBound?: number | undefined;
   category: string;
 }
 
@@ -113,7 +112,6 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
   const [selectedGene, setSelectedGene] = useState<string>('ALL');
   const [selectedGroup, setSelectedGroup] = useState<string>('age');
   const [selectedTimestamp, setSelectedTimestamp] = useState<string>('');
-  const [timeRange, setTimeRange] = useState<'weekly' | 'monthly' | 'all'>('all');
   const [tabValue, setTabValue] = useState(0);
   const [targetDate, setTargetDate] = useState(redcapConfig.defaults.targetDate);
   const [targetNumber, setTargetNumber] = useState(redcapConfig.defaults.targetNumber);
@@ -350,10 +348,10 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
         timestamp: intervalStart.getTime(),
         total: isCurrentOrPast ? total : undefined,
         category: 'Total',
-        projected: 0,
-        trendProjected: 0,
-        upperBound: 0,
-        lowerBound: 0,
+        projected: isCurrentOrPast ? undefined : 0,
+        trendProjected: isCurrentOrPast ? undefined : 0,
+        upperBound: isCurrentOrPast ? undefined : 0,
+        lowerBound: isCurrentOrPast ? undefined : 0,
       };
     });
 
@@ -400,16 +398,19 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
         const trendProjected = lastActual + trendRate * (index + 1);
         const confidenceMargin = stdDev * Math.sqrt(index + 1) * 2;
         
-        dataPoints.push({
-          date: format(month, 'MMM yyyy'),
-          timestamp: month.getTime(),
-          total: undefined,
-          projected: Math.round(currentProjected),
-          trendProjected: Math.round(trendProjected),
-          upperBound: Math.round(trendProjected + confidenceMargin),
-          lowerBound: Math.max(lastActual, Math.round(trendProjected - confidenceMargin)),
-          category: 'Total',
-        });
+        // Only add projection data points for future dates
+        if (month > now) {
+          dataPoints.push({
+            date: format(month, 'MMM yyyy'),
+            timestamp: month.getTime(),
+            total: undefined,
+            projected: Math.round(currentProjected),
+            trendProjected: Math.round(trendProjected),
+            upperBound: Math.round(trendProjected + confidenceMargin),
+            lowerBound: Math.max(lastActual, Math.round(trendProjected - confidenceMargin)),
+            category: 'Total',
+          });
+        }
       });
     }
 
@@ -809,6 +810,8 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
                     const monthsToTarget = differenceInMonths(target, now) - 1;
                     const requiredMonthlyRate = Math.round((parseInt(targetNumber) - lastActualValue) / monthsToTarget);
 
+                    const ciLower = Math.round(props.payload.lowerBound);
+                    const ciUpper = Math.round(props.payload.upperBound);
                     if (pointDate > now && name === 'total') {
                       return ['', ''];
                     }
@@ -816,25 +819,27 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
                     switch (name) {
                       case 'total':
                         return [`Total: ${Math.round(value)}`, 'Actual'];
-                      case 'projected':
+                      case 'Target Projection':
                         if (pointDate <= now) {
                           return ['', ''];
                         }
                         return [
-                          `Total: ${Math.round(value)} (+${requiredMonthlyRate}/month)`,
-                          'Target Projection'
+                          `Total: ${Math.round(value)} (Required: +${requiredMonthlyRate}/month)`,
+                          'Target Projections'
                         ];
-                      case 'trendProjected':
+                      case 'Trend Projection':
                         if (pointDate <= now) {
                           return ['', ''];
                         }
+                    
                         return [
-                          `Total: ${Math.round(value)} (+${Math.round(averageMonthlyGrowth)}/month)`,
+                          `Total: ${Math.round(value)} (Historical: +${Math.round(averageMonthlyGrowth)}/month)`,
                           'Trend Projection'
                         ];
-                      case 'upperBound':
-                      case 'lowerBound':
-                        return ['', 'Confidence Interval'];
+                      case 'CI: Upper Bound':
+                        return [`${ciUpper}`, 'CI: Upper Bound'];
+                      case 'CI: Lower Bound':
+                        return [`${ciLower}`, 'CI: Lower Bound'];
                       default:
                         return [Math.round(value), name];
                     }
@@ -854,24 +859,24 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
                   dataKey="projected"
                   stroke="#D32F2F"
                   name="Target Projection"
-                  strokeWidth={2}
+                  strokeWidth={3}
                   strokeDasharray="5 5"
-                  dot={{ r: 4 }}
+                  dot={false}
                 />
                 <Line
                   type="monotone"
                   dataKey="trendProjected"
                   stroke="#1976D2"
                   name="Trend Projection"
-                  strokeWidth={2}
+                  strokeWidth={3}
                   strokeDasharray="3 3"
-                  dot={{ r: 4 }}
+                  dot={false}
                 />
                 <Line
                   type="monotone"
                   dataKey="upperBound"
                   stroke="#1976D2"
-                  name="Confidence Interval"
+                  name="CI: Upper Bound"
                   strokeWidth={1}
                   strokeDasharray="2 2"
                   dot={false}
@@ -880,7 +885,7 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
                   type="monotone"
                   dataKey="lowerBound"
                   stroke="#1976D2"
-                  name="Confidence Interval"
+                  name="CI: Lower Bound"
                   strokeWidth={1}
                   strokeDasharray="2 2"
                   dot={false}

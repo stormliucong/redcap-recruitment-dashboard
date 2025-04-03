@@ -5,14 +5,12 @@ import {
   Typography,
   Container,
   Box,
-  Button,
   CssBaseline,
   ThemeProvider,
   createTheme,
   Chip,
 } from '@mui/material'
 import type { RedcapConfig } from './services/redcapApi'
-import RefreshIcon from '@mui/icons-material/Refresh';
 import RecruitmentDashboard from './components/Dashboard/RecruitmentDashboard'
 import { format, addMonths } from 'date-fns'
 
