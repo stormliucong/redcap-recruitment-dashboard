@@ -65,13 +65,15 @@ const DEFAULT_CONFIG: RedcapConfig = {
       { redcapField: 'location_country', displayName: 'Location', type: 'group', valueMappings: {} }
     ],
     timestamps: [
-      { redcapField: 'consent_date', displayName: 'Consent Date', type: 'timestamp' as const },
-      { redcapField: 'mhi_date', displayName: 'MHI Date', type: 'timestamp' as const },
-      { redcapField: 'meds_date_complete', displayName: 'Meds Date Complete', type: 'timestamp' as const },
-      { redcapField: 'seizure_formdate', displayName: 'Seizure Form Date', type: 'timestamp' as const },
-      { redcapField: 'cb_date', displayName: 'CB Date', type: 'timestamp' as const },
-      { redcapField: 'vl_date', displayName: 'VL Date', type: 'timestamp' as const },
-      { redcapField: 'cbcl_survey_date', displayName: 'CBCL Survey Date', type: 'timestamp' as const }
+      { redcapField: 'consent_date', displayName: 'Consent', type: 'timestamp' as const },
+      { redcapField: 'mhi_date', displayName: 'MHI Survey', type: 'timestamp' as const },
+      { redcapField: 'meds_date_complete', displayName: 'Medication History Survey', type: 'timestamp' as const },
+      { redcapField: 'seizure_formdate', displayName: 'Seizure Survey', type: 'timestamp' as const },
+      { redcapField: 'cb_date', displayName: 'Caregiver Burden Survey ', type: 'timestamp' as const },
+      { redcapField: 'vl_date', displayName: 'Vineland Assessments', type: 'timestamp' as const },
+      { redcapField: 'cbcl_survey_date', displayName: 'CBCL Survey Date', type: 'timestamp' as const },
+      { redcapField: 'survey_quality_of_life_inventory_disability_timestamp', displayName: 'Survey Quality of Life Inventory Disability Date', type: 'timestamp' as const },
+      { redcapField: 'transition_page_completion_page_timestamp', displayName: 'Transition Page Completion Page Date', type: 'timestamp' as const }
     ],
   }
 }

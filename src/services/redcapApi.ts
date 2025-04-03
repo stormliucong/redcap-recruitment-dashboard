@@ -34,6 +34,8 @@ export interface ParticipantData {
   cb_date: string;
   vl_date: string;
   cbcl_survey_date: string;
+  survey_quality_of_life_inventory_disability_timestamp: string;
+  transition_page_completion_page_timestamp: string;
   [key: string]: string;
 }
 
@@ -167,6 +169,9 @@ export class RedcapApiService {
     formData.append('fields[13]', 'cbcl_155_date');
     formData.append('fields[14]', 'cbcl_618_date');
     formData.append('fields[15]', 'abcl1859_date');
+    formData.append('forms[0]', 'transition_page_completion_page');
+    formData.append('forms[1]', 'survey_quality_of_life_inventory_disability');
+    formData.append('exportSurveyFields', 'true');
     formData.append('format', 'json');
     formData.append('returnFormat', 'json');
 
@@ -203,6 +208,8 @@ export class RedcapApiService {
         cb_date: record.cb_date,
         vl_date: record.vl_date,
         cbcl_survey_date: '',
+        survey_quality_of_life_inventory_disability_timestamp: record.survey_quality_of_life_inventory_disability_timestamp,
+        transition_page_completion_page_timestamp: record.transition_page_completion_page_timestamp
       };
 
       // Process age into groups
