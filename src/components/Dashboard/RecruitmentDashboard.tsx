@@ -113,10 +113,10 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
   const [selectedGene, setSelectedGene] = useState<string>('ALL');
   const [selectedGroup, setSelectedGroup] = useState<string>('age');
   const [selectedTimestamp, setSelectedTimestamp] = useState<string>('');
+  const [timeRange, setTimeRange] = useState<'weekly' | 'monthly' | 'all'>('all');
   const [tabValue, setTabValue] = useState(0);
   const [targetDate, setTargetDate] = useState(redcapConfig.defaults.targetDate);
   const [targetNumber, setTargetNumber] = useState(redcapConfig.defaults.targetNumber);
-  const [monthlyTarget, setMonthlyTarget] = useState<string>('');
   const [averageMonthlyGrowth, setAverageMonthlyGrowth] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdateTime, setLastUpdateTime] = useState<string | null>(null);
@@ -378,7 +378,7 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
       : 0;
 
     // Use user-specified monthly target or calculated average growth
-    const trendRate = monthlyTarget ? parseInt(monthlyTarget) : avgGrowth;
+    const trendRate = averageMonthlyGrowth;
 
     // Calculate projection
     const target = parseISO(targetDate);
@@ -691,20 +691,6 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
                       }}
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6} md={4}>
-                    <TextField
-                      fullWidth
-                      label="Monthly Target (Optional)"
-                      type="number"
-                      value={monthlyTarget}
-                      onChange={(e) => setMonthlyTarget(e.target.value)}
-                      placeholder={data.length > 0 ? `Default: ${Math.round(averageMonthlyGrowth)}` : ''}
-                      InputLabelProps={{
-                        shrink: true,
-                      }}
-                      helperText="Leave empty to use historical average"
-                    />
-                  </Grid>
                 </Grid>
               </TabPanel>
             </Grid>
@@ -842,9 +828,8 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
                         if (pointDate <= now) {
                           return ['', ''];
                         }
-                        const monthlyRate = monthlyTarget ? parseInt(monthlyTarget) : Math.round(averageMonthlyGrowth);
                         return [
-                          `Total: ${Math.round(value)} (+${monthlyRate}/month)`,
+                          `Total: ${Math.round(value)} (+${Math.round(averageMonthlyGrowth)}/month)`,
                           'Trend Projection'
                         ];
                       case 'upperBound':
