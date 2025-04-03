@@ -844,15 +844,15 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
                 <Line
                   type="monotone"
                   dataKey="total"
-                  stroke={COLORS[0]}
+                  stroke="#2E7D32"
                   name="Actual"
-                  strokeWidth={2}
+                  strokeWidth={3}
                   dot={{ r: 4 }}
                 />
                 <Line
                   type="monotone"
                   dataKey="projected"
-                  stroke={COLORS[0]}
+                  stroke="#D32F2F"
                   name="Target Projection"
                   strokeWidth={2}
                   strokeDasharray="5 5"
@@ -861,11 +861,29 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
                 <Line
                   type="monotone"
                   dataKey="trendProjected"
-                  stroke={COLORS[0]}
+                  stroke="#1976D2"
                   name="Trend Projection"
                   strokeWidth={2}
                   strokeDasharray="3 3"
                   dot={{ r: 4 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="upperBound"
+                  stroke="#1976D2"
+                  name="Confidence Interval"
+                  strokeWidth={1}
+                  strokeDasharray="2 2"
+                  dot={false}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="lowerBound"
+                  stroke="#1976D2"
+                  name="Confidence Interval"
+                  strokeWidth={1}
+                  strokeDasharray="2 2"
+                  dot={false}
                 />
               </LineChart>
             )}
