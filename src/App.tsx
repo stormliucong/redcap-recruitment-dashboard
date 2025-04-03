@@ -71,6 +71,7 @@ const DEFAULT_CONFIG: RedcapConfig = {
       { redcapField: 'seizure_formdate', displayName: 'Seizure Form Date', type: 'timestamp' as const },
       { redcapField: 'cb_date', displayName: 'CB Date', type: 'timestamp' as const },
       { redcapField: 'vl_date', displayName: 'VL Date', type: 'timestamp' as const },
+      { redcapField: 'cbcl_survey_date', displayName: 'CBCL Survey Date', type: 'timestamp' as const }
     ],
   }
 }

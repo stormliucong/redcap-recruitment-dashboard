@@ -33,6 +33,7 @@ export interface ParticipantData {
   seizure_formdate: string;
   cb_date: string;
   vl_date: string;
+  cbcl_survey_date: string;
   [key: string]: string;
 }
 
@@ -163,6 +164,9 @@ export class RedcapApiService {
     formData.append('fields[10]', 'seizure_formdate');
     formData.append('fields[11]', 'cb_date');
     formData.append('fields[12]', 'vl_date');
+    formData.append('fields[13]', 'cbcl_155_date');
+    formData.append('fields[14]', 'cbcl_618_date');
+    formData.append('fields[15]', 'abcl1859_date');
     formData.append('format', 'json');
     formData.append('returnFormat', 'json');
 
@@ -197,7 +201,8 @@ export class RedcapApiService {
         meds_date_complete: record.meds_date_complete,
         seizure_formdate: record.seizure_formdate,
         cb_date: record.cb_date,
-        vl_date: record.vl_date
+        vl_date: record.vl_date,
+        cbcl_survey_date: '',
       };
 
       // Process age into groups
@@ -248,6 +253,17 @@ export class RedcapApiService {
       const geneName = GENE_MAPPINGS[geneValue] || geneValue;
       participantData.gene = geneName;
 
+      // Map cbcl_survery_date to timestamp
+      if (record.cbcl_155_date) {
+        participantData.cbcl_survey_date = record.cbcl_155_date;
+      } else if (record.cbcl_618_date) {
+        participantData.cbcl_survey_date = record.cbcl_618_date;
+      } else if (record.abcl1859_date) {
+        participantData.cbcl_survey_date = record.abcl1859_date;
+      } else {
+        participantData.cbcl_survey_date = '';
+      }
+      
       return participantData;
     });
   }

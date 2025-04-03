@@ -63,23 +63,6 @@ interface CumulativeDataPoint {
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8']
 
-// Default fields if none are configured
-const DEFAULT_FIELDS: RedcapConfig['fields'] = {
-  groups: [
-    { redcapField: 'gene', displayName: 'Gene', type: 'group' as const, valueMappings: {} },
-    { redcapField: 'consent_location', displayName: 'Consent Location', type: 'group' as const, valueMappings: {} },
-    { redcapField: 'location_country', displayName: 'Location', type: 'group' as const, valueMappings: {} }
-  ],
-  timestamps: [
-    { redcapField: 'consent_date', displayName: 'Consent Date', type: 'timestamp' as const },
-    { redcapField: 'mhi_date', displayName: 'MHI Date', type: 'timestamp' as const },
-    { redcapField: 'meds_date_complete', displayName: 'Meds Date Complete', type: 'timestamp' as const },
-    { redcapField: 'seizure_formdate', displayName: 'Seizure Form Date', type: 'timestamp' as const },
-    { redcapField: 'cb_date', displayName: 'CB Date', type: 'timestamp' as const },
-    { redcapField: 'vl_date', displayName: 'VL Date', type: 'timestamp' as const },
-  ],
-};
-
 const ResponsiveChart = ({ children }: { children: React.ReactElement }) => (
   <Box
     sx={{
