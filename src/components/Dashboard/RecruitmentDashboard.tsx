@@ -113,10 +113,9 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
   const [selectedGene, setSelectedGene] = useState<string>('ALL');
   const [selectedGroup, setSelectedGroup] = useState<string>('age');
   const [selectedTimestamp, setSelectedTimestamp] = useState<string>('');
-  const [timeRange, setTimeRange] = useState<'weekly' | 'monthly' | 'all'>('all');
   const [tabValue, setTabValue] = useState(0);
-  const [targetDate, setTargetDate] = useState(format(addMonths(new Date(), 12), 'yyyy-MM-dd'));
-  const [targetNumber, setTargetNumber] = useState('1000');
+  const [targetDate, setTargetDate] = useState(redcapConfig.defaults.targetDate);
+  const [targetNumber, setTargetNumber] = useState(redcapConfig.defaults.targetNumber);
   const [monthlyTarget, setMonthlyTarget] = useState<string>('');
   const [averageMonthlyGrowth, setAverageMonthlyGrowth] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -256,7 +255,6 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
       return mappings[originalValue] ?? originalValue;
     };
 
-    // Get unique mapped categories for group2
     const getUniqueMappedCategories = (field: string, config?: FieldMapping) => {
       if (field === 'ALL') return ['Total'];
       const uniqueValues = new Set(filteredData.map(record => getMappedValue(record[field] as string, config)));
@@ -509,7 +507,7 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
             <Grid item xs={12}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                 <Typography variant="h5" component="h2">
-                  Recruitment Dashboard
+                  Total Participants: {data.length}
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
                   {lastUpdateTime && (
@@ -858,28 +856,6 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
                   }}
                 />
                 <Legend />
-                <defs>
-                  <linearGradient id="confidenceGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#8884d8" stopOpacity={0.1}/>
-                    <stop offset="100%" stopColor="#8884d8" stopOpacity={0.1}/>
-                  </linearGradient>
-                </defs>
-                <Area
-                  type="monotone"
-                  dataKey="upperBound"
-                  stroke="none"
-                  fill="url(#confidenceGradient)"
-                  fillOpacity={1}
-                  name="Confidence Interval"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="lowerBound"
-                  stroke="none"
-                  fill="#ffffff"
-                  fillOpacity={1}
-                  name="Confidence Interval"
-                />
                 <Line
                   type="monotone"
                   dataKey="total"

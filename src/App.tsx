@@ -14,6 +14,7 @@ import {
 import type { RedcapConfig } from './services/redcapApi'
 import RefreshIcon from '@mui/icons-material/Refresh';
 import RecruitmentDashboard from './components/Dashboard/RecruitmentDashboard'
+import { format, addMonths } from 'date-fns'
 
 const theme = createTheme({
   palette: {
@@ -102,6 +103,10 @@ const DEFAULT_CONFIG: RedcapConfig = {
       { redcapField: 'vl_date', displayName: 'Vineland Assessments Complete', type: 'timestamp' as const },
       { redcapField: 'cbcl_survey_date', displayName: 'CBCL Survey Date', type: 'timestamp' as const }
     ],
+  },
+  defaults: {
+    targetDate: format(addMonths(new Date(), 12), 'yyyy-MM-dd'),
+    targetNumber: '1000'
   }
 }
 
@@ -127,15 +132,6 @@ function App() {
                   />
                 )}
               </Typography>
-              <Box sx={{ display: 'flex', gap: 2 }}>
-                <Button
-                  color="inherit"
-                  startIcon={<RefreshIcon />}
-                  onClick={() => window.location.reload()}
-                >
-                  Refresh Page
-                </Button>
-              </Box>
             </Toolbar>
           </Container>
         </AppBar>

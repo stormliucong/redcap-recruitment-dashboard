@@ -8,6 +8,10 @@ export interface RedcapConfig {
     groups: FieldMapping[];
     timestamps: FieldMapping[];
   };
+  defaults: {
+    targetDate: string;
+    targetNumber: string;
+  };
   batchNumber?: number;
   timeout?: number;
 }
@@ -315,6 +319,10 @@ export const redcapApi = new RedcapApiService({
   fields: {
     groups: [],
     timestamps: []
+  },
+  defaults: {
+    targetDate: '',
+    targetNumber: ''
   },
   timeout: 30000, // 30 seconds
   batchNumber: 100
