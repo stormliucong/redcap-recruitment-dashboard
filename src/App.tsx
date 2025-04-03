@@ -62,18 +62,45 @@ const DEFAULT_CONFIG: RedcapConfig = {
     groups: [
       { redcapField: 'gene', displayName: 'Gene', type: 'group', valueMappings: {} },
       { redcapField: 'consent_location', displayName: 'Consent Location', type: 'group', valueMappings: {} },
-      { redcapField: 'location_country', displayName: 'Location', type: 'group', valueMappings: {} }
+      { redcapField: 'age', displayName: 'Age Group', type: 'group', valueMappings: {
+        '0-6': '0-6 years',
+        '7-17': '7-17 years',
+        '18-65': '18-65 years',
+        '65+': '65+ years'
+      }},
+      { redcapField: 'location_country', displayName: 'Location', type: 'group', valueMappings: {
+        'United States': 'United States',
+        'Others': 'Other Countries'
+      }},
+      { redcapField: 'consent_location', displayName: 'Consent Location', type: 'group', valueMappings: {
+        'Boston': 'Boston',
+        'Others': 'Other Locations'
+      }},
+      { redcapField: 'race', displayName: 'Race', type: 'group', valueMappings: {
+        'American Indian or Alaska Native': 'American Indian or Alaska Native',
+        'Asian': 'Asian',
+        'Native Hawaiian or Pacific Islander': 'Native Hawaiian or Pacific Islander',
+        'Black or African American': 'Black or African American',
+        'White or Caucasian': 'White or Caucasian',
+        'Others': 'Others',
+        'Unknown': 'Unknown'
+      }},
+      { redcapField: 'ethnicity', displayName: 'Ethnicity', type: 'group', valueMappings: {
+        'Hispanic or Latino': 'Hispanic or Latino',
+        'Not Hispanic or Latino': 'Not Hispanic or Latino',
+        'Unknown': 'Unknown'
+      }}
     ],
     timestamps: [
-      { redcapField: 'consent_date', displayName: 'Consent', type: 'timestamp' as const },
-      { redcapField: 'mhi_date', displayName: 'MHI Survey', type: 'timestamp' as const },
-      { redcapField: 'meds_date_complete', displayName: 'Medication History Survey', type: 'timestamp' as const },
-      { redcapField: 'seizure_formdate', displayName: 'Seizure Survey', type: 'timestamp' as const },
-      { redcapField: 'cb_date', displayName: 'Caregiver Burden Survey ', type: 'timestamp' as const },
-      { redcapField: 'vl_date', displayName: 'Vineland Assessments', type: 'timestamp' as const },
-      { redcapField: 'cbcl_survey_date', displayName: 'CBCL Survey Date', type: 'timestamp' as const },
-      { redcapField: 'survey_quality_of_life_inventory_disability_timestamp', displayName: 'Survey Quality of Life Inventory Disability Date', type: 'timestamp' as const },
-      { redcapField: 'transition_page_completion_page_timestamp', displayName: 'Transition Page Completion Page Date', type: 'timestamp' as const }
+      { redcapField: 'consent_date', displayName: 'Consent Date', type: 'timestamp' as const },
+      { redcapField: 'mhi_date', displayName: 'MHI Survey Complete', type: 'timestamp' as const },
+      { redcapField: 'meds_date_complete', displayName: 'Medication History Survey Complete', type: 'timestamp' as const },
+      { redcapField: 'seizure_formdate', displayName: 'Seizure Survey Complete', type: 'timestamp' as const },
+      { redcapField: 'survey_quality_of_life_inventory_disability_timestamp', displayName: 'QoL Disability Survey Complete', type: 'timestamp' as const },
+      { redcapField: 'cb_date', displayName: 'Caregiver Burden Survey Complete', type: 'timestamp' as const },
+      { redcapField: 'transition_page_completion_page_timestamp', displayName: 'Total Survey Queue Surveys Complete', type: 'timestamp' as const },
+      { redcapField: 'vl_date', displayName: 'Vineland Assessments Complete', type: 'timestamp' as const },
+      { redcapField: 'cbcl_survey_date', displayName: 'CBCL Survey Date', type: 'timestamp' as const }
     ],
   }
 }

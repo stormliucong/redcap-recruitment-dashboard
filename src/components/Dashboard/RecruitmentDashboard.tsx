@@ -110,9 +110,10 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<ParticipantData[]>([]);
-  const [selectedGene, setSelectedGene] = useState('ALL');
-  const [selectedGroup, setSelectedGroup] = useState('location_country');
-  const [selectedTimestamp, setSelectedTimestamp] = useState('');
+  const [selectedGene, setSelectedGene] = useState<string>('ALL');
+  const [selectedGroup, setSelectedGroup] = useState<string>('age');
+  const [selectedTimestamp, setSelectedTimestamp] = useState<string>('');
+  const [timeRange, setTimeRange] = useState<'weekly' | 'monthly' | 'all'>('all');
   const [tabValue, setTabValue] = useState(0);
   const [targetDate, setTargetDate] = useState(format(addMonths(new Date(), 12), 'yyyy-MM-dd'));
   const [targetNumber, setTargetNumber] = useState('1000');
@@ -121,58 +122,33 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdateTime, setLastUpdateTime] = useState<string | null>(null);
 
-  const fields = {
-    groups: redcapConfig.fields.groups.length > 0 ? redcapConfig.fields.groups : DEFAULT_FIELDS.groups,
-    timestamps: redcapConfig.fields.timestamps.length > 0 ? redcapConfig.fields.timestamps : DEFAULT_FIELDS.timestamps,
+  // Get available fields from config
+  const availableFields = redcapConfig?.fields || {
+    groups: [],
+    timestamps: []
   };
 
   // Get gene field and other group fields
-  const otherGroupFields = fields.groups.filter(f => f.redcapField !== 'gene');
+  const otherGroupFields = availableFields.groups.filter((f: FieldMapping) => f.redcapField !== 'gene');
 
   // Get unique gene values from the data
-  const uniqueGenes = ['ALL', ...Array.from(new Set(data.map(record => record.gene as string))).sort()];
+  const uniqueGenes = ['ALL', ...Array.from(new Set(data.map((record: ParticipantData) => record.gene as string))).sort()];
 
-  // Define the age group order
-  const AGE_GROUP_ORDER = ['0-6', '7-17', '18-65', '65+'];
-
-  // Define the available group fields
+  // Create GROUP_FIELDS from config
   const GROUP_FIELDS = {
     ALL: {
       displayName: 'All Groups',
       values: ['Total']
     },
-    age: {
-      displayName: 'Age Group',
-      values: AGE_GROUP_ORDER
-    },
-    location_country: {
-      displayName: 'Location',
-      values: ['United States', 'Others']
-    },
-    consent_location: {
-      displayName: 'Consent Location',
-      values: ['Boston', 'Others']
-    },
-    race: {
-      displayName: 'Race',
-      values: [
-        'American Indian or Alaska Native',
-        'Asian',
-        'Native Hawaiian or Pacific Islander',
-        'Black or African American',
-        'White or Caucasian',
-        'Others',
-        'Unknown'
-      ]
-    },
-    ethnicity: {
-      displayName: 'Ethnicity',
-      values: [
-        'Hispanic or Latino',
-        'Not Hispanic or Latino',
-        'Unknown'
-      ]
-    }
+    ...Object.fromEntries(
+      availableFields.groups.map(field => [
+        field.redcapField,
+        {
+          displayName: field.displayName,
+          values: Object.keys(field.valueMappings || {})
+        }
+      ])
+    )
   };
 
   useEffect(() => {
@@ -192,7 +168,7 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
           setSelectedGroup(otherGroupFields[0].redcapField);
         }
         if (!selectedTimestamp) {
-          setSelectedTimestamp(fields.timestamps[0].redcapField);
+          setSelectedTimestamp(availableFields.timestamps[0].redcapField);
         }
         setLastUpdateTime(new Date().toISOString());
       } catch (err) {
@@ -241,17 +217,30 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
   useEffect(() => {
     if (!selectedGroup) return;
 
-  }, [selectedGroup, data, fields.groups]);
+  }, [selectedGroup, data, availableFields.groups]);
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
+  };
+
+
+  const handleGeneChange = (event: SelectChangeEvent<string>) => {
+    setSelectedGene(event.target.value);
+  };
+
+  const handleGroupChange = (event: SelectChangeEvent<string>) => {
+    setSelectedGroup(event.target.value);
+  };
+
+  const handleTimestampChange = (event: SelectChangeEvent<string>) => {
+    setSelectedTimestamp(event.target.value);
   };
 
   const processTimeSeriesData = () => {
     if (!selectedTimestamp) return [];
 
     const group2Field = selectedGroup;
-    const group2Config = fields.groups.find(f => f.redcapField === group2Field) as FieldMapping | undefined;
+    const group2Config = availableFields.groups.find(f => f.redcapField === group2Field) as FieldMapping | undefined;
 
     // Filter data based on selected gene
     const filteredData = selectedGene === 'ALL' 
@@ -466,10 +455,6 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
     }
   };
 
-  const handleGroupChange = (event: SelectChangeEvent) => {
-    setSelectedGroup(event.target.value);
-  };
-
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -604,7 +589,7 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
                       <Select
                         value={selectedGene}
                         label="Gene"
-                        onChange={(e: SelectChangeEvent) => setSelectedGene(e.target.value)}
+                        onChange={handleGeneChange}
                       >
                         {uniqueGenes.map((gene) => (
                           <MenuItem key={gene} value={gene}>
@@ -636,10 +621,10 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
                       <Select
                         value={selectedTimestamp}
                         label="Timestamp Field"
-                        onChange={(e: SelectChangeEvent) => setSelectedTimestamp(e.target.value)}
+                        onChange={handleTimestampChange}
                       >
                         <MenuItem value="ALL">All Time</MenuItem>
-                        {fields.timestamps.map((field) => (
+                        {availableFields.timestamps.map((field) => (
                           <MenuItem key={field.redcapField} value={field.redcapField}>
                             {field.displayName}
                           </MenuItem>
@@ -658,7 +643,7 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
                       <Select
                         value={selectedGene}
                         label="Gene"
-                        onChange={(e: SelectChangeEvent) => setSelectedGene(e.target.value)}
+                        onChange={handleGeneChange}
                       >
                         {uniqueGenes.map((gene) => (
                           <MenuItem key={gene} value={gene}>
@@ -674,9 +659,9 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
                       <Select
                         value={selectedTimestamp}
                         label="Timestamp Field"
-                        onChange={(e: SelectChangeEvent) => setSelectedTimestamp(e.target.value)}
+                        onChange={handleTimestampChange}
                       >
-                        {fields.timestamps.map(field => (
+                        {availableFields.timestamps.map(field => (
                           <MenuItem key={field.redcapField} value={field.redcapField}>
                             {field.displayName}
                           </MenuItem>
@@ -795,7 +780,7 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
                   ) : (
                     Array.from(new Set(data.map(record => {
                       const value2 = record[selectedGroup] as string;
-                      const fieldConfig2 = fields.groups.find(f => f.redcapField === selectedGroup);
+                      const fieldConfig2 = availableFields.groups.find(f => f.redcapField === selectedGroup);
                       const mappings2 = fieldConfig2?.valueMappings as { [key: string]: string } | undefined;
                       return mappings2?.[value2] ?? value2;
                     }))).map((category, index) => (
