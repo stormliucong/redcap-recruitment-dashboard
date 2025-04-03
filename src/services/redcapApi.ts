@@ -21,13 +21,19 @@ export interface FieldMapping {
 
 export interface ParticipantData {
   record_id: string;
-  age: string;
-  consent_location: string;
-  location_country: string;
   gene: string;
   consent_date: string;
-  survey_completion_date: string;
-  [key: string]: any;
+  consent_location: string;
+  location_country: string;
+  race: string;
+  ethnicity: string;
+  age: string;
+  mhi_date: string;
+  meds_date_complete: string;
+  seizure_formdate: string;
+  cb_date: string;
+  vl_date: string;
+  [key: string]: string;
 }
 
 export const GENE_MAPPINGS: { [key: string]: string } = {
@@ -152,6 +158,11 @@ export class RedcapApiService {
     formData.append('fields[5]', 'consent_bch_date');
     formData.append('fields[6]', 'race');
     formData.append('fields[7]', 'ethnicity');
+    formData.append('fields[8]', 'mhi_date');
+    formData.append('fields[9]', 'meds_date_complete');
+    formData.append('fields[10]', 'seizure_formdate');
+    formData.append('fields[11]', 'cb_date');
+    formData.append('fields[12]', 'vl_date');
     formData.append('format', 'json');
     formData.append('returnFormat', 'json');
 
@@ -182,7 +193,11 @@ export class RedcapApiService {
         location_country: record.location_country,
         gene: record.gene,
         consent_date: record.consent_bch_date,
-        survey_completion_date: '', // This field is not available in the current data
+        mhi_date: record.mhi_date,
+        meds_date_complete: record.meds_date_complete,
+        seizure_formdate: record.seizure_formdate,
+        cb_date: record.cb_date,
+        vl_date: record.vl_date
       };
 
       // Process age into groups
@@ -216,9 +231,6 @@ export class RedcapApiService {
       if (record.ethnicity === '1') participantData.ethnicity = 'Hispanic or Latino';
       if (record.ethnicity === '0') participantData.ethnicity = 'Not Hispanic or Latino';
       if (record.ethnicity === '99') participantData.ethnicity = 'Unknown';
-
-      
-
 
       // Process consent location
       if (record.consent_bch === '1') {

@@ -68,12 +68,15 @@ const DEFAULT_FIELDS: RedcapConfig['fields'] = {
   groups: [
     { redcapField: 'gene', displayName: 'Gene', type: 'group' as const, valueMappings: {} },
     { redcapField: 'consent_location', displayName: 'Consent Location', type: 'group' as const, valueMappings: {} },
-    { redcapField: 'race_ethnicity', displayName: 'Race/Ethnicity', type: 'group' as const, valueMappings: {} },
-    { redcapField: 'is_international', displayName: 'Is International', type: 'group' as const, valueMappings: {} },
+    { redcapField: 'location_country', displayName: 'Location', type: 'group' as const, valueMappings: {} }
   ],
   timestamps: [
     { redcapField: 'consent_date', displayName: 'Consent Date', type: 'timestamp' as const },
-    { redcapField: 'survey_completion_date', displayName: 'Survey Completion', type: 'timestamp' as const },
+    { redcapField: 'mhi_date', displayName: 'MHI Date', type: 'timestamp' as const },
+    { redcapField: 'meds_date_complete', displayName: 'Meds Date Complete', type: 'timestamp' as const },
+    { redcapField: 'seizure_formdate', displayName: 'Seizure Form Date', type: 'timestamp' as const },
+    { redcapField: 'cb_date', displayName: 'CB Date', type: 'timestamp' as const },
+    { redcapField: 'vl_date', displayName: 'VL Date', type: 'timestamp' as const },
   ],
 };
 
