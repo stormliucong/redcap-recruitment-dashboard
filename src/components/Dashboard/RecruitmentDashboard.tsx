@@ -357,7 +357,7 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
       };
     });
 
-    // Calculate monthly growth rates
+    // Calculate monthly growth rates for the selected gene
     const monthlyGrowths: number[] = [];
     for (let i = 1; i < dataPoints.length; i++) {
       const prevTotal = dataPoints[i - 1].total || 0;
@@ -366,7 +366,7 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
       monthlyGrowths.push(growth);
     }
 
-    // Calculate standard deviation
+    // Calculate standard deviation for the selected gene
     const avgGrowth = monthlyGrowths.length > 0
       ? monthlyGrowths.reduce((sum, growth) => sum + growth, 0) / monthlyGrowths.length
       : 0;
@@ -377,8 +377,8 @@ const RecruitmentDashboard: React.FC<RecruitmentDashboardProps> = ({ redcapConfi
         )
       : 0;
 
-    // Use user-specified monthly target or calculated average growth
-    const trendRate = averageMonthlyGrowth;
+    // Use the calculated average growth for trend projection
+    const trendRate = avgGrowth;
 
     // Calculate projection
     const target = parseISO(targetDate);
