@@ -14,8 +14,9 @@ COPY . .
 
 # Clean install with no optional deps and full rebuild
 RUN rm -rf node_modules package-lock.json \
-    && npm install --omit=optional \
-    && npm rebuild
+    && npm install --omit=optional 
+
+RUN npm run build
 
 # Production stage
 FROM nginx:alpine
