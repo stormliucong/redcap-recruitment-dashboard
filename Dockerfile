@@ -6,16 +6,17 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Clean install dependencies with legacy peer deps
+RUN rm -rf node_modules package-lock.json \
+    && npm install --legacy-peer-deps
+
+# Install platform-specific dependency
+RUN npm install @rollup/rollup-linux-x64-gnu --save-dev
 
 # Copy source code
 COPY . .
 
-# Clean install with no optional deps and full rebuild
-RUN rm -rf node_modules package-lock.json \
-    && npm install --omit=optional 
-
+# Build the application
 RUN npm run build
 
 # Production stage
